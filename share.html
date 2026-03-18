@@ -154,12 +154,26 @@ async function loadData(){
   document.getElementById('sdot').className='status-dot loading';
   document.getElementById('stxt').textContent='Loading...';
   try{
-    const r=await fetch(SB_URL+'/rest/v1/planner_data?id=eq.main&select=data',{headers:SB_H});
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),8000);
+    const r=await fetch(SB_URL+'/rest/v1/planner_data?id=eq.main&select=data',{
+      headers:SB_H,signal:controller.signal
+    });
+    clearTimeout(timeout);
+    if(!r.ok)throw new Error('HTTP '+r.status);
     const rows=await r.json();
-    if(rows.length&&rows[0].data){const d=rows[0].data;state={blocks:d.blocks||[],deadlines:d.deadlines||[]};}
-    document.getElementById('sdot').className='status-dot';document.getElementById('stxt').textContent='Up to date';
-    render();
-  }catch(e){document.getElementById('sdot').style.background='#b83232';document.getElementById('stxt').textContent='Could not load';}
+    if(rows&&rows.length&&rows[0]&&rows[0].data){
+      const d=rows[0].data;
+      state={blocks:d.blocks||[],deadlines:d.deadlines||[]};
+    }
+    document.getElementById('sdot').className='status-dot';
+    document.getElementById('stxt').textContent='Up to date';
+  }catch(e){
+    document.getElementById('sdot').style.background='#b83232';
+    document.getElementById('stxt').textContent=e.name==='AbortError'?'Timed out — showing empty calendar':'Could not load data';
+    console.error('loadData error:',e);
+  }
+  render();
 }
 
 function getWeekBlocks(){
