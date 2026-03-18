@@ -446,19 +446,18 @@ function renderSlots3(){
   renderSlotsInto(dateStr,wrap,selectedSlot3,'2');
 }
 function getBlocksForAnyDate(dateStr){
-  // Get all blocks that fall on this date, regardless of which week we're viewing
   const dt=new Date(dateStr+'T00:00:00');
   const day=dt.getDay(),diff=day===0?-6:1-day;
   const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
   const wk=isoDate(mon);
+  const di=day===0?6:day-1; // dayIdx for this date — defined before the loop
   const out=[];
   state.blocks.forEach(b=>{
-    // Week-specific block on this exact week
+    // Week-specific block on this exact week and day
     if(b.week===wk&&b.dayIdx===di){out.push(b);return;}
-    // Week-specific override from another week — skip
+    // Block from a different week — skip unless it's a recurring master
     if(b.week&&b.week!==wk)return;
     if(!b.recur||b.recur==='none')return;
-    const di=day===0?6:day-1;
     if(b.recur==='weekly'&&b.dayIdx===di){
       const oid=b.id+'__'+wk;
       const ov=state.blocks.find(x=>x.overrideOf===oid);
