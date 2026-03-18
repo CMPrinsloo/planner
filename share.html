@@ -451,31 +451,36 @@ function renderSlots3(){
   wrap.style.display='grid';
   renderSlotsInto(dateStr,wrap,selectedSlot3,'2');
 }
+function blockDateStr(b){
+  // Compute the actual local date string a block falls on, regardless of
+  // whether the week key is Sunday-based or Monday-based
+  const wkDt=new Date(b.week+'T12:00:00');
+  const wkDay=wkDt.getDay(); // 0=Sun, 1=Mon
+  // dayIdx is Mon=0..Sun=6 in our system
+  // If week key is a Monday (wkDay===1): date = weekKey + dayIdx days
+  // If week key is a Sunday (wkDay===0): date = weekKey + dayIdx+1 days
+  const offset=wkDay===0?b.dayIdx+1:b.dayIdx;
+  const d=new Date(wkDt);d.setDate(wkDt.getDate()+offset);
+  return isoDate(d);
+}
+
 function getBlocksForAnyDate(dateStr){
-  // dateStr is local date e.g. "2026-03-21"
-  const dt=new Date(dateStr+'T12:00:00'); // noon to avoid DST edge cases
+  const dt=new Date(dateStr+'T12:00:00');
   const day=dt.getDay();
   const di=day===0?6:day-1;
-
-  // Find all week keys that could contain this date
-  // A block with week W contains dayIdx di if the date W+di days = dateStr
+  // Monday-based week key for recurring master lookups
+  const diff=day===0?-6:1-day;
+  const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
+  const wk=isoDate(mon);
   const out=[];
   state.blocks.forEach(b=>{
     if(b.week){
-      // Compute what date this block actually falls on
-      const bMon=new Date(b.week+'T12:00:00');
-      const bDate=new Date(bMon);
-      bDate.setDate(bMon.getDate()+b.dayIdx);
-      const bDateStr=isoDate(bDate);
-      if(bDateStr===dateStr)out.push(b);
+      // Week-specific: compute actual date and compare
+      if(blockDateStr(b)===dateStr)out.push(b);
       return;
     }
-    // Recurring master — need a week key to check overrides
+    // Recurring master
     if(!b.recur||b.recur==='none')return;
-    // Compute Monday-based week key for dateStr
-    const diff=day===0?-6:1-day;
-    const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
-    const wk=isoDate(mon);
     if(b.recur==='weekly'&&b.dayIdx===di){
       const oid=b.id+'__'+wk;
       const ov=state.blocks.find(x=>x.overrideOf===oid);
