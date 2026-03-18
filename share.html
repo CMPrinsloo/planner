@@ -405,43 +405,26 @@ function getBlocksForDate(dateStr){
 
 function renderSlots(){
   const dateStr=document.getElementById('bk-date').value;
-  const wb=getBlocksForDate(dateStr);
-  const d=new Date(dateStr+'T00:00:00');
-  const day=d.getDay();
-  const dayIdx=day===0?6:day-1;
   const grid=document.getElementById('slot-grid');
-  if(!grid)return;
-
-  // Build occupied slots for this day
-  const busySlots=new Set(),tentSlots=new Set();
-  wb.forEach(b=>{
-    if(b.dayIdx!==dayIdx)return;
-    if(b.lockType==='floater')return;
-    const slots=Math.max(1,Math.round((b.duration||1)*2));
-    const start=b.hour*2+(b.min===30?1:0);
-    for(let s=0;s<slots;s++){
-      if(b.lockType==='fixed')busySlots.add(start+s);
-      else tentSlots.add(start+s);
-    }
-  });
-
+  if(!grid||!dateStr)return;
+  const{busySlots,tentSlots}=buildSlotAvailability(dateStr);
+  const cutoff=new Date(now.getTime()+24*60*60*1000);
   const chips=[];
-  const slotCutoff=new Date(now.getTime()+24*60*60*1000);
   for(let h=8;h<20;h++){
     [0,30].forEach(m=>{
       const slotIdx=h*2+(m===30?1:0);
       const slotDt=new Date(dateStr+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00');
-      const tooSoon=slotDt<=slotCutoff;
-      const busyHard=busySlots.has(slotIdx);
-      const isTent=tentSlots.has(slotIdx);
-      const unavail=tooSoon||busyHard;
-      const timeStr=`${h}:${m===0?'00':'30'}`;
-      const isSelected=selectedSlot&&selectedSlot.date===dateStr&&selectedSlot.h===h&&selectedSlot.m===m;
-      const label=isTent?timeStr+' ~':timeStr;
-      const title=tooSoon?'Less than 24h notice':busyHard?'Not available':isTent?'Tentative — awaiting confirmation':'Available';
-      chips.push(`<div class="slot-chip${unavail?' unavail':''}${isSelected?' selected':''}${isTent&&!unavail?' tentative':''}"
-        onclick="selectSlot('${dateStr}',${h},${m},'${isTent?'tentative':'free'}')"
-        title="${title}">${label}</div>`);
+      const tooSoon=slotDt<=cutoff;
+      const busy=busySlots.has(slotIdx);
+      const tent=tentSlots.has(slotIdx);
+      const unavail=tooSoon||busy;
+      const isSel=selectedSlot&&selectedSlot.date===dateStr&&selectedSlot.h===h&&selectedSlot.m===m;
+      const type=tent?'tentative':'free';
+      const lbl=`${h}:${m===0?'00':'30'}${tent?' ~':''}`;
+      const title=tooSoon?'Less than 24h notice':busy?'Not available':tent?'Tentative — needs confirmation':'Available';
+      chips.push(`<div class="slot-chip${unavail?' unavail':''}${isSel?' selected':''}${tent&&!unavail?' tentative':''}"
+        onclick="selectSlot('${dateStr}',${h},${m},'${type}')"
+        title="${title}">${lbl}</div>`);
     });
   }
   grid.innerHTML=chips.join('');
