@@ -135,6 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const SB_URL='https://ygtmgtoemcuxvyveysdv.supabase.co';
 const SB_KEY='sb_publishable_WMGOMBRjiY72TTgXQI3mzQ_RJxYL14L';
+const now=new Date(); // global reference time
 const SB_H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const SLOTS=[];
@@ -304,7 +305,6 @@ function openBooking(preDate,preH,preM){
 
 function renderBookingStep1(preDate,preH,preM){
   // Build date options — slots must be at least 24h from right now
-  const now=new Date();
   const cutoff=new Date(now.getTime()+24*60*60*1000); // exactly 24h ahead
   const dates=[];
   for(let i=0;i<=14;i++){
@@ -367,9 +367,45 @@ function renderBookingStep1(preDate,preH,preM){
   if(preH!=null)selectSlot(preDate,preH,preM);
 }
 
+function getBlocksForDate(dateStr){
+  // Get blocks for the week containing dateStr, regardless of current view
+  const d=new Date(dateStr+'T00:00:00');
+  const day=d.getDay(),diff=day===0?-6:1-day;
+  const mon=new Date(d);mon.setDate(d.getDate()+diff);
+  const wk=isoDate(mon);
+  const dates=Array.from({length:7},(_,i)=>{const dd=new Date(mon);dd.setDate(mon.getDate()+i);return dd;});
+  const expanded=[];
+  state.blocks.forEach(b=>{
+    if(b.week===wk){expanded.push({...b});return;}
+    if(!b.recur||b.recur==='none')return;
+    if(b.recur==='weekly'){
+      dates.forEach((dd,di)=>{
+        if(di===b.dayIdx){
+          const oid=b.id+'__'+wk;
+          const ov=state.blocks.find(x=>x.overrideOf===oid);
+          if(ov)expanded.push({...ov});
+          else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
+            expanded.push({...b,week:wk,id:oid,dayIdx:di});
+        }
+      });
+    }else if(b.recur==='custom'&&b.recurDays){
+      dates.forEach((dd,di)=>{
+        if(b.recurDays.includes(di)){
+          const oid=b.id+'__'+wk+'__'+di;
+          const ov=state.blocks.find(x=>x.overrideOf===oid);
+          if(ov)expanded.push({...ov});
+          else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
+            expanded.push({...b,week:wk,dayIdx:di,id:oid});
+        }
+      });
+    }
+  });
+  return expanded;
+}
+
 function renderSlots(){
   const dateStr=document.getElementById('bk-date').value;
-  const wb=getWeekBlocks();
+  const wb=getBlocksForDate(dateStr);
   const d=new Date(dateStr+'T00:00:00');
   const day=d.getDay();
   const dayIdx=day===0?6:day-1;
@@ -417,7 +453,7 @@ function renderSlots2(){
   if(!wrap)return;
   if(!dateStr){wrap.style.display='none';selectedSlot2=null;return;}
   wrap.style.display='grid';
-  renderSlotsInto(dateStr,wrap,selectedSlot2,(d,h,m,t)=>{selectedSlot2={date:d,h,m,type:t};renderSlots2();});
+  renderSlotsInto(dateStr,wrap,selectedSlot2,'1');
 }
 function renderSlots3(){
   const dateStr=document.getElementById('bk-date3').value;
@@ -425,16 +461,43 @@ function renderSlots3(){
   if(!wrap)return;
   if(!dateStr){wrap.style.display='none';selectedSlot3=null;return;}
   wrap.style.display='grid';
-  renderSlotsInto(dateStr,wrap,selectedSlot3,(d,h,m,t)=>{selectedSlot3={date:d,h,m,type:t};renderSlots3();});
+  renderSlotsInto(dateStr,wrap,selectedSlot3,'2');
 }
-function renderSlotsInto(dateStr,grid,selSlot,onSelect){
-  const wb=getWeekBlocks();
-  const d=new Date(dateStr+'T00:00:00');
-  const day=d.getDay(),dayIdx=day===0?6:day-1;
+function getBlocksForAnyDate(dateStr){
+  // Get all blocks that fall on this date, regardless of which week we're viewing
+  const dt=new Date(dateStr+'T00:00:00');
+  const day=dt.getDay(),diff=day===0?-6:1-day;
+  const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
+  const wk=isoDate(mon);
+  const out=[];
+  state.blocks.forEach(b=>{
+    if(b.week===wk){out.push(b);return;}
+    if(!b.recur||b.recur==='none')return;
+    const di=day===0?6:day-1;
+    if(b.recur==='weekly'&&b.dayIdx===di){
+      const oid=b.id+'__'+wk;
+      const ov=state.blocks.find(x=>x.overrideOf===oid);
+      if(ov)out.push(ov);
+      else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
+        out.push({...b,week:wk,id:oid});
+    } else if(b.recur==='custom'&&b.recurDays&&b.recurDays.includes(di)){
+      const oid=b.id+'__'+wk+'__'+di;
+      const ov=state.blocks.find(x=>x.overrideOf===oid);
+      if(ov)out.push(ov);
+      else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
+        out.push({...b,week:wk,dayIdx:di,id:oid});
+    }
+  });
+  return out;
+}
+
+function buildSlotAvailability(dateStr){
+  const dt=new Date(dateStr+'T00:00:00');
+  const day=dt.getDay(),dayIdx=day===0?6:day-1;
+  const wb=getBlocksForAnyDate(dateStr);
   const busySlots=new Set(),tentSlots=new Set();
   wb.forEach(b=>{
-    if(b.dayIdx!==dayIdx)return;
-    if(b.lockType==='floater')return;
+    if(b.dayIdx!==dayIdx||b.lockType==='floater')return;
     const slots=Math.max(1,Math.round((b.duration||1)*2));
     const start=b.hour*2+(b.min===30?1:0);
     for(let s=0;s<slots;s++){
@@ -442,6 +505,11 @@ function renderSlotsInto(dateStr,grid,selSlot,onSelect){
       else tentSlots.add(start+s);
     }
   });
+  return{busySlots,tentSlots};
+}
+
+function renderSlotsInto(dateStr,grid,selSlot,slotId){
+  const{busySlots,tentSlots}=buildSlotAvailability(dateStr);
   const cutoff=new Date(now.getTime()+24*60*60*1000);
   let chips='';
   for(let h=8;h<20;h++){
@@ -451,12 +519,18 @@ function renderSlotsInto(dateStr,grid,selSlot,onSelect){
       const tooSoon=slotDt<=cutoff,busy=busySlots.has(slotIdx),tent=tentSlots.has(slotIdx);
       const unavail=tooSoon||busy;
       const isSel=selSlot&&selSlot.date===dateStr&&selSlot.h===h&&selSlot.m===m;
-      const lbl=`${h}:${m===0?'00':'30'}${tent?'~':''}`;
+      const type=tent?'tentative':'free';
+      const lbl=`${h}:${m===0?'00':'30'}${tent?' ~':''}`;
       chips+=`<div class="slot-chip${unavail?' unavail':''}${isSel?' selected':''}${tent&&!unavail?' tentative':''}"
-        onclick="(${onSelect.toString()})('${dateStr}',${h},${m},'${tent?'tentative':'free'}')">${lbl}</div>`;
+        onclick="selectSlotN('${slotId}','${dateStr}',${h},${m},'${type}')">${lbl}</div>`;
     });
   }
   grid.innerHTML=chips;
+}
+
+function selectSlotN(slotId,date,h,m,type){
+  if(slotId==='1'){selectedSlot2={date,h,m,type};renderSlots2();}
+  else if(slotId==='2'){selectedSlot3={date,h,m,type};renderSlots3();}
 }
 function selectSlot(date,h,m,type){
   selectedSlot={date,h,m,type:type||'free'};
@@ -471,9 +545,11 @@ async function submitBooking(){
   const email=document.getElementById('bk-email').value.trim();
   const reason=document.getElementById('bk-reason').value.trim();
   const dur=parseInt(document.getElementById('bk-dur').value);
-  if(!name||!email){alert('Please enter your name and email.');return;}
+  if(!name){alert('Please enter your name.');return;}
+  if(!email){alert('Please enter your email address.');return;}
+  const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(!emailRe.test(email)){alert('Please enter a valid email address (e.g. name@example.com).');return;}
   if(!selectedSlot){alert('Please select a time slot.');return;}
-  if(!email.includes('@')){alert('Please enter a valid email.');return;}
 
   const btn=document.querySelector('.bk-btn-p');
   btn.textContent='Sending...';btn.disabled=true;
