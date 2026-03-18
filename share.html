@@ -445,31 +445,44 @@ function renderSlots3(){
   wrap.style.display='grid';
   renderSlotsInto(dateStr,wrap,selectedSlot3,'2');
 }
-function getBlocksForAnyDate(dateStr){
+function weekMonForDate(dateStr){
+  // Compute the Monday-based week key for any date string
   const dt=new Date(dateStr+'T00:00:00');
   const day=dt.getDay(),diff=day===0?-6:1-day;
   const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
-  const wk=isoDate(mon);
-  const di=day===0?6:day-1; // dayIdx for this date — defined before the loop
+  return isoDate(mon);
+}
+
+function getBlocksForAnyDate(dateStr){
+  const dt=new Date(dateStr+'T00:00:00');
+  const day=dt.getDay();
+  const di=day===0?6:day-1;
+  // Compute week key the same way the main planner does
+  const wk=weekMonForDate(dateStr);
   const out=[];
   state.blocks.forEach(b=>{
-    // Week-specific block on this exact week and day
-    if(b.week===wk&&b.dayIdx===di){out.push(b);return;}
-    // Block from a different week — skip unless it's a recurring master
-    if(b.week&&b.week!==wk)return;
+    if(b.week){
+      // Week-specific block — check if it falls on this date
+      // Handle both Monday-keyed and Sunday-keyed weeks by checking
+      // that the block's week contains this dayIdx
+      const bWkMon=weekMonForDate(b.week); // normalise to Monday
+      if(bWkMon===wk&&b.dayIdx===di)out.push(b);
+      return;
+    }
+    // Recurring master
     if(!b.recur||b.recur==='none')return;
     if(b.recur==='weekly'&&b.dayIdx===di){
       const oid=b.id+'__'+wk;
       const ov=state.blocks.find(x=>x.overrideOf===oid);
-      if(ov)out.push(ov);
-      else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
-        out.push({...b,week:wk,id:oid});
+      if(ov){out.push(ov);return;}
+      if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
+        out.push({...b,week:wk,id:oid,status:'pending',actualHours:null});
     } else if(b.recur==='custom'&&b.recurDays&&b.recurDays.includes(di)){
       const oid=b.id+'__'+wk+'__'+di;
       const ov=state.blocks.find(x=>x.overrideOf===oid);
-      if(ov)out.push(ov);
-      else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
-        out.push({...b,week:wk,dayIdx:di,id:oid});
+      if(ov){out.push(ov);return;}
+      if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
+        out.push({...b,week:wk,dayIdx:di,id:oid,status:'pending',actualHours:null});
     }
   });
   return out;
@@ -480,9 +493,7 @@ function buildSlotAvailability(dateStr){
   const day=dt.getDay(),dayIdx=day===0?6:day-1;
   const wb=getBlocksForAnyDate(dateStr);
   const busySlots=new Set(),tentSlots=new Set();
-  console.log('buildSlotAvailability for',dateStr,'dayIdx=',dayIdx,'blocks found:',wb.length);
   wb.forEach(b=>{
-    console.log('  block:',b.title||b.activity,'dayIdx=',b.dayIdx,'hour=',b.hour,'lock=',b.lockType,'week=',b.week);
     if(b.dayIdx!==dayIdx||b.lockType==='floater')return;
     if(b.hour==null)return;
     const slots=Math.max(1,Math.round((b.duration||1)*2));
@@ -493,7 +504,6 @@ function buildSlotAvailability(dateStr){
       else tentSlots.add(start+s);
     }
   });
-  console.log('  busySlots:',Array.from(busySlots),'tentSlots:',Array.from(tentSlots));
   return{busySlots,tentSlots};
 }
 
