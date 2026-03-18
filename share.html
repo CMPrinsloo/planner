@@ -146,7 +146,12 @@ let state={blocks:[],deadlines:[]};
 
 function weekMon(off){const n=new Date();n.setHours(0,0,0,0);const d=n.getDay(),diff=d===0?-6:1-d;n.setDate(n.getDate()+diff+off*7);return n;}
 function weekDates(off){const m=weekMon(off);return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});}
-function isoDate(d){return d.toISOString().slice(0,10);}
+function isoDate(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 function weekKey(off){return isoDate(weekMon(off));}
 function fmtDate(d){return d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});}
 function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear();}
