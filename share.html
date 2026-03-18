@@ -183,8 +183,16 @@ async function loadData(){
 
 function getWeekBlocks(){
   const wk=weekKey(weekOffset),dates=weekDates(weekOffset),expanded=[];
+  const dateStrs=dates.map(d=>isoDate(d)); // ["2026-03-16",..."2026-03-22"]
   state.blocks.forEach(b=>{
-    if(b.week===wk){expanded.push({...b});return;}
+    if(b.week){
+      // Week-specific: use blockDateStr to find actual date regardless of key format
+      const bds=blockDateStr(b);
+      const di=dateStrs.indexOf(bds);
+      if(di>=0)expanded.push({...b,dayIdx:di});
+      return;
+    }
+    // Recurring master
     if(!b.recur||b.recur==='none')return;
     if(b.recur==='weekly'){
       dates.forEach((d,di)=>{
