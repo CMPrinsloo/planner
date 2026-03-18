@@ -155,12 +155,11 @@ async function loadData(){
   document.getElementById('sdot').className='status-dot loading';
   document.getElementById('stxt').textContent='Loading...';
   try{
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),8000);
+    // GET requests don't need Content-Type header — it can cause preflight issues
+    const getHeaders={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
     const r=await fetch(SB_URL+'/rest/v1/planner_data?id=eq.main&select=data',{
-      headers:SB_H,signal:controller.signal
+      headers:getHeaders
     });
-    clearTimeout(timeout);
     if(!r.ok)throw new Error('HTTP '+r.status);
     const rows=await r.json();
     if(rows&&rows.length&&rows[0]&&rows[0].data){
@@ -171,7 +170,7 @@ async function loadData(){
     document.getElementById('stxt').textContent='Up to date';
   }catch(e){
     document.getElementById('sdot').style.background='#b83232';
-    document.getElementById('stxt').textContent=e.name==='AbortError'?'Timed out — showing empty calendar':'Could not load data';
+    document.getElementById('stxt').textContent='Could not load — '+e.message;
     console.error('loadData error:',e);
   }
   render();
