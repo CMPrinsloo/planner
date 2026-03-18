@@ -217,6 +217,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ms-row input[type=checkbox]{accent-color:var(--info);flex-shrink:0;}
 .ms-row.done-m{color:var(--text3);text-decoration:line-through;}
 .ms-row .ms-del{opacity:0;color:var(--text3);cursor:pointer;font-size:10px;padding:0 2px;flex-shrink:0;}
+.custom-check{width:14px;height:14px;border:.5px solid var(--border2);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;background:var(--bg);color:transparent;transition:all .15s;}
+.custom-check.checked{background:var(--success-bg);border-color:var(--success-b);color:var(--success);}
+.custom-check:hover{border-color:var(--success-b);}
 .ms-row:hover .ms-del{opacity:1;}
 .subtasks{margin-left:18px;margin-top:2px;}
 .st-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);margin-bottom:2px;}
@@ -748,6 +751,18 @@ function renderLoadRow(dates){
 function renderGrid(dates){
   const wb=getWeekBlocks();
   const cd=state.closedDays||[];
+  // Build pending booking preview map
+  const pendingBookings={};
+  (bookingRequests||[]).filter(r=>r.status==='pending').forEach(r=>{
+    const dt=new Date(r.requested_date+'T00:00:00');
+    const di=dt.getDay()===0?6:dt.getDay()-1;
+    const wk2=weekKeyForDate(dt);
+    if(wk2!==weekKey(weekOffset))return;
+    const key=di+'_'+r.requested_hour+'_'+(r.requested_min||0);
+    if(!pendingBookings[key])pendingBookings[key]=[];
+    pendingBookings[key].push(r);
+  });
+
   // Calculate current time position for the time line
   const now=new Date();
   const nowH=now.getHours(),nowM=now.getMinutes();
@@ -798,9 +813,21 @@ function renderGrid(dates){
           <div class="resize-handle"onmousedown="event.stopPropagation();startResize(event,'${esc(b.id)}')"ontouchstart="event.stopPropagation();startResize(event,'${esc(b.id)}')"></div>
         </div>`;
       });
-      // Inject time line into the first slot of today column (renders absolutely positioned over entire column)
+      // Inject time line into the first slot of today column
       if(tod&&showTimeLine&&hr===5&&m===0){
         inner=`<div class="time-line"style="top:${nowPx}px;position:absolute;left:0;right:0"></div>`+inner;
+      }
+      // Inject pending booking previews
+      const bkKey=di+'_'+hr+'_'+m;
+      if(pendingBookings[bkKey]){
+        pendingBookings[bkKey].forEach(r=>{
+          const slots=Math.max(1,Math.round((r.duration_mins||60)/30));
+          const hpx=slots*22-2;
+          inner+=`<div class="blk pending-booking"style="top:1px;height:${hpx}px;background:repeating-linear-gradient(45deg,var(--bg3) 0px,var(--bg3) 4px,var(--bg2) 4px,var(--bg2) 8px);border:1.5px dashed var(--text3);border-radius:4px;"
+            onclick="event.stopPropagation();openInbox()">
+            <div class="blk-title"style="color:var(--text2);font-size:9px">⏳ ${esc(r.name)}</div>
+          </div>`;
+        });
       }
       h+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${closed?' closed-col':''}"onclick="cellClick(${di},${hr},${m})">${inner}</div>`;
     });
@@ -857,9 +884,10 @@ function renderProjects(){
     const wkh=actActualHrs(p.activityId,wk,p.id);
     const prog=getProgress(p);
     const isManual=p.manualProgress!=null;
-    const deadlineStr=p.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">due ${p.deadline}</span>`:'';
+    const fmtDl=d=>{if(!d)return'';const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});};
+    const deadlineStr=p.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">due ${fmtDl(p.deadline)}</span>`:'';
     const ms=(p.milestones||[]).map((m,mi)=>{
-      const mDeadline=m.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${m.deadline}</span>`:'';
+      const mDeadline=m.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${fmtDl(m.deadline)}</span>`:'';
       const msLen=(p.milestones||[]).length;
       return`<div class="ms-item">
         <div class="ms-row${m.done?' done-m':''}">
@@ -867,14 +895,14 @@ function renderProjects(){
             <button class="reorder-btn"onclick="moveMs('${p.id}',${mi},-1)"${mi===0?'style="visibility:hidden"':''}>▲</button>
             <button class="reorder-btn"onclick="moveMs('${p.id}',${mi},1)"${mi===msLen-1?'style="visibility:hidden"':''}>▼</button>
           </div>
-          <input type="checkbox"${m.done?' checked':''}onchange="toggleMs('${p.id}',${mi})">
+          <div class="custom-check${m.done?' checked':''}"onclick="toggleMs('${p.id}',${mi})">${m.done?'✓':''}</div>
           <span style="flex:1;cursor:text"ondblclick="editMsText(this,'${p.id}',${mi})">${esc(m.text)}</span>
           ${mDeadline}
           <span class="ms-del"onclick="deleteMs('${p.id}',${mi})">✕</span>
         </div>
         <div class="subtasks">${(m.subtasks||[]).map((s,si)=>`
           <div class="st-row${s.done?' done-s':''}">
-            <input type="checkbox"${s.done?' checked':''}onchange="toggleSt('${p.id}',${mi},${si})">
+            <div class="custom-check${s.done?' checked':''}"onclick="toggleSt('${p.id}',${mi},${si})">${s.done?'✓':''}</div>
             <span style="flex:1">${esc(s.text)}</span>
             <span class="st-del"onclick="deleteSt('${p.id}',${mi},${si})">✕</span>
           </div>`).join('')}
@@ -2110,25 +2138,43 @@ function renderInbox(){
   }).join('');
 }
 
-async function approveBooking(id,date,hour,min,durMins,name){
-  // Add block to planner
-  const wk=weekKeyForDate(new Date(date+'T00:00:00'));
+function approveBooking(id,date,hour,min,durMins,name){
+  // Show category picker before confirming
+  const ao=allActs().map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
+  const dt=new Date(date+'T00:00:00');
+  const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
+  document.getElementById('m2title').textContent='Approve booking';
+  document.getElementById('m2body').innerHTML=`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+      <strong>${esc(name)}</strong> — ${dayStr} at ${hour}:${min===0?'00':'30'} (${durMins>=60?durMins/60+'h':durMins+'min'})
+    </div>
+    <div class="frow"><label>Block title</label><input id="ap-title" value="Meeting: ${esc(name)}"></div>
+    <div class="frow"><label>Category</label><select id="ap-act">${ao}</select></div>
+    <div class="frow"><label>Notes</label><input id="ap-notes" placeholder="Optional notes"></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="confirmApprove('${id}','${date}',${hour},${min},${durMins})">Approve & add to calendar</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+async function confirmApprove(id,date,hour,min,durMins){
+  const title=document.getElementById('ap-title').value.trim()||'Meeting';
+  const activity=document.getElementById('ap-act').value;
+  const notes=document.getElementById('ap-notes').value.trim();
   const dt=new Date(date+'T00:00:00');
   const day=dt.getDay();
   const dayIdx=day===0?6:day-1;
+  const wk=weekKeyForDate(dt);
   state.blocks.push({
-    id:uid(),week:wk,
-    title:`Meeting: ${name}`,
-    activity:'personal',
-    dayIdx,hour,min,
-    duration:durMins/60,
-    lockType:'fixed',
-    secondaryActivity:null,secondary:'',notes:'Booking request approved',
+    id:uid(),week:wk,title,activity,dayIdx,
+    hour:parseInt(hour),min:parseInt(min),
+    duration:durMins/60,lockType:'fixed',
+    secondaryActivity:null,secondary:'',notes,
     recur:'none',recurDays:[],status:'pending',actualHours:null
   });
   sched();render();
-
-  // Update status in Supabase
+  document.getElementById('mbg2').style.display='none';
   await fetch(SB_BOOK+'/rest/v1/booking_requests?id=eq.'+id,{
     method:'PATCH',headers:{...SB_BH,'Prefer':'return=minimal'},
     body:JSON.stringify({status:'approved'})

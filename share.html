@@ -7,20 +7,22 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#fff;--bg2:#f5f5f3;--bg3:#ebebea;
-  --text:#1a1a18;--text2:#6b6b67;--text3:#9ca3a0;
-  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --bg:#ffffff;--bg2:#f7f6f3;--bg3:#edece8;
+  --text:#181816;--text2:#52524e;--text3:#8a8a85;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
   --radius:8px;--radius-lg:12px;
   --info:#1a6fbf;--info-bg:#e8f1fb;
-  --busy:#e07020;--busy-bg:#fdf0e6;
+  --busy:#c45c10;--busy-bg:#fdf0e6;
+  --tent:#7c4dbb;--tent-bg:#f3eefe;
   --free:#2d7a3a;--free-bg:#e8f5ea;
   --slot-h:20px;--label-w:46px;--col-w:110px;
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#242422;--bg3:#2e2e2c;
   --text:#e8e8e4;--text2:#a0a09a;--text3:#6b6b67;
-  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
-  --info-bg:#0d2a4a;--busy-bg:#3a1e08;--free-bg:#0d2a14;
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.18);
+  --info-bg:#0d2a4a;--busy-bg:#3a1e08;--tent-bg:#1e1030;--free-bg:#0d2a14;
+  --busy:#e07020;--tent:#9b6de0;--free:#3a9e4a;
 }}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:13px;}
 #app{max-width:920px;margin:0 auto;padding:16px 10px 40px;}
@@ -54,9 +56,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .gcell.today-col{background:color-mix(in srgb,var(--info-bg) 20%,var(--bg));}
 .gcell.free-slot{background:color-mix(in srgb,var(--free-bg) 35%,var(--bg));}
 .gcell.busy-slot{background:color-mix(in srgb,var(--busy-bg) 35%,var(--bg));}
-.gcell.tent-slot{background:color-mix(in srgb,var(--busy-bg) 15%,var(--bg));}
+.gcell.tent-slot{background:color-mix(in srgb,var(--tent-bg) 30%,var(--bg));}
 .busy-blk{position:absolute;left:1px;right:1px;top:1px;border-radius:4px;background:var(--busy-bg);border:1.5px solid var(--busy);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--busy);overflow:hidden;}
-.tent-blk{position:absolute;left:1px;right:1px;top:1px;border-radius:4px;background:var(--busy-bg);border:1.5px dashed var(--busy);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--busy);overflow:hidden;opacity:.6;background-image:repeating-linear-gradient(45deg,rgba(224,112,32,.08) 0px,rgba(224,112,32,.08) 3px,transparent 3px,transparent 7px);}
+.tent-blk{position:absolute;left:1px;right:1px;top:1px;border-radius:4px;background:var(--tent-bg);border:1.5px dashed var(--tent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--tent);overflow:hidden;opacity:.75;background-image:repeating-linear-gradient(45deg,rgba(124,77,187,.07) 0px,rgba(124,77,187,.07) 3px,transparent 3px,transparent 7px);}
 .day-summary{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:10px;}
 .day-sum{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:7px 8px;text-align:center;}
 .day-sum-name{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px;}
@@ -84,6 +86,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .slot-chip:hover{border-color:var(--free);color:var(--free);}
 .slot-chip.selected{background:var(--free-bg);border-color:var(--free);color:var(--free);font-weight:600;}
 .slot-chip.unavail{opacity:.35;cursor:not-allowed;pointer-events:none;}
+.slot-chip.tentative{border-color:var(--tent);color:var(--tent);}
+.slot-chip.tentative:hover{background:var(--tent-bg);}
 .success-box{text-align:center;padding:1.5rem 1rem;}
 .success-icon{font-size:40px;margin-bottom:12px;}
 .success-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
@@ -110,9 +114,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="legend">
-    <div class="leg"><div class="leg-dot"style="background:var(--busy)"></div>Busy (fixed)</div>
-    <div class="leg"><div class="leg-dot"style="background:var(--busy);opacity:.45"></div>Tentative (can move)</div>
-    <div class="leg"><div class="leg-dot"style="background:var(--free)"></div>Likely free</div>
+    <div class="leg"><div class="leg-dot"style="background:var(--busy)"></div>Busy</div>
+    <div class="leg"><div class="leg-dot"style="background:var(--tent)"></div>Tentative</div>
+    <div class="leg"><div class="leg-dot"style="background:var(--free)"></div>Free</div>
   </div>
 
   <div class="grid-outer">
@@ -276,7 +280,7 @@ loadData();
 const SB_BOOK_URL='https://ygtmgtoemcuxvyveysdv.supabase.co';
 const SB_BOOK_KEY='sb_publishable_WMGOMBRjiY72TTgXQI3mzQ_RJxYL14L';
 
-let selectedSlot=null;
+let selectedSlot=null,selectedSlot2=null,selectedSlot3=null;
 
 function openBooking(preDate,preH,preM){
   selectedSlot=null;
@@ -285,23 +289,33 @@ function openBooking(preDate,preH,preM){
 }
 
 function renderBookingStep1(preDate,preH,preM){
-  // Build date options — next 14 days, skip today+tomorrow (24h rule)
+  // Build date options — slots must be at least 24h from right now
   const now=new Date();
-  const minDate=new Date(now);minDate.setDate(now.getDate()+1);minDate.setHours(23,59,59);
+  const cutoff=new Date(now.getTime()+24*60*60*1000); // exactly 24h ahead
   const dates=[];
-  for(let i=2;i<=16;i++){
+  for(let i=0;i<=14;i++){
     const d=new Date(now);d.setDate(now.getDate()+i);d.setHours(0,0,0,0);
-    dates.push(d);
+    // Include this date if at least one slot on it is after cutoff
+    const dayEnd=new Date(d);dayEnd.setHours(20,0,0,0);
+    if(dayEnd>cutoff)dates.push(d);
   }
   const dayOpts=dates.map(d=>{
     const dk=isoDate(d);
     return`<option value="${dk}"${preDate===dk?' selected':''}>${d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})}</option>`;
   }).join('');
 
+  const FAMOUS=[
+    {name:'Elon Musk',email:'elon@x.com'},{name:'Serena Williams',email:'serena@tennis.com'},
+    {name:'Barack Obama',email:'barack@whitehouse.gov'},{name:'Marie Curie',email:'marie@paris.edu'},
+    {name:'Lionel Messi',email:'leo@barca.com'},{name:'Malala Yousafzai',email:'malala@fund.org'},
+    {name:'Neil deGrasse Tyson',email:'neil@hayden.org'},{name:'Oprah Winfrey',email:'oprah@own.com'},
+    {name:'Cristiano Ronaldo',email:'cr7@real.es'},{name:'Simone Biles',email:'simone@usag.com'},
+  ];
+  const fp=FAMOUS[Math.floor(Math.random()*FAMOUS.length)];
   document.getElementById('bk-body').innerHTML=`
     <div class="bk-title">Request a meeting</div>
-    <div class="bk-frow"><label>Your name</label><input id="bk-name" placeholder="e.g. Liam van der Berg"></div>
-    <div class="bk-frow"><label>Your email</label><input id="bk-email" type="email" placeholder="liam@example.com"></div>
+    <div class="bk-frow"><label>Your name</label><input id="bk-name" placeholder="e.g. ${fp.name}"></div>
+    <div class="bk-frow"><label>Your email</label><input id="bk-email" type="email" placeholder="${fp.email}"></div>
     <div class="bk-frow"><label>Reason</label><textarea id="bk-reason" placeholder="What would you like to meet about?"></textarea></div>
     <div class="bk-frow"><label>Duration</label>
       <select id="bk-dur">
@@ -315,6 +329,21 @@ function renderBookingStep1(preDate,preH,preM){
     </div>
     <div class="bk-frow"><label>Available slots</label>
       <div class="slot-grid" id="slot-grid"></div>
+    </div>
+    <div id="tent-notice" style="display:none;font-size:11px;color:var(--tent);background:var(--tent-bg);border-radius:6px;padding:7px 10px;margin-bottom:8px">
+      ⚠ This slot is tentative — your request will need confirmation before it's confirmed.
+    </div>
+    <div class="bk-frow"><label>Secondary slot (optional)</label>
+      <select id="bk-date2" onchange="renderSlots2()">
+        <option value="">None</option>${dates.map(d=>`<option value="${isoDate(d)}">${d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})}</option>`).join('')}
+      </select>
+      <div class="slot-grid" id="slot-grid2" style="margin-top:5px;display:none"></div>
+    </div>
+    <div class="bk-frow"><label>Tertiary slot (optional)</label>
+      <select id="bk-date3" onchange="renderSlots3()">
+        <option value="">None</option>${dates.map(d=>`<option value="${isoDate(d)}">${d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})}</option>`).join('')}
+      </select>
+      <div class="slot-grid" id="slot-grid3" style="margin-top:5px;display:none"></div>
     </div>
     <div class="bk-actions">
       <button class="bk-btn bk-btn-p" onclick="submitBooking()">Send request</button>
@@ -334,33 +363,93 @@ function renderSlots(){
   if(!grid)return;
 
   // Build occupied slots for this day
-  const busySlots=new Set();
+  const busySlots=new Set(),tentSlots=new Set();
   wb.forEach(b=>{
     if(b.dayIdx!==dayIdx)return;
     if(b.lockType==='floater')return;
     const slots=Math.max(1,Math.round((b.duration||1)*2));
     const start=b.hour*2+(b.min===30?1:0);
-    for(let s=0;s<slots;s++)busySlots.add(start+s);
+    for(let s=0;s<slots;s++){
+      if(b.lockType==='fixed')busySlots.add(start+s);
+      else tentSlots.add(start+s);
+    }
   });
 
   const chips=[];
+  const slotCutoff=new Date(now.getTime()+24*60*60*1000);
   for(let h=8;h<20;h++){
     [0,30].forEach(m=>{
       const slotIdx=h*2+(m===30?1:0);
-      const busy=busySlots.has(slotIdx);
+      const slotDt=new Date(dateStr+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00');
+      const tooSoon=slotDt<=slotCutoff;
+      const busyHard=busySlots.has(slotIdx);
+      const isTent=tentSlots.has(slotIdx);
+      const unavail=tooSoon||busyHard;
       const timeStr=`${h}:${m===0?'00':'30'}`;
       const isSelected=selectedSlot&&selectedSlot.date===dateStr&&selectedSlot.h===h&&selectedSlot.m===m;
-      chips.push(`<div class="slot-chip${busy?' unavail':''}${isSelected?' selected':''}"
-        onclick="selectSlot('${dateStr}',${h},${m})">${timeStr}</div>`);
+      const label=isTent?timeStr+' ~':timeStr;
+      const title=tooSoon?'Less than 24h notice':busyHard?'Not available':isTent?'Tentative — awaiting confirmation':'Available';
+      chips.push(`<div class="slot-chip${unavail?' unavail':''}${isSelected?' selected':''}${isTent&&!unavail?' tentative':''}"
+        onclick="selectSlot('${dateStr}',${h},${m},'${isTent?'tentative':'free'}')"
+        title="${title}">${label}</div>`);
     });
   }
   grid.innerHTML=chips.join('');
 }
 
-function selectSlot(date,h,m){
-  selectedSlot={date,h,m};
-  document.querySelectorAll('.slot-chip').forEach(c=>c.classList.remove('selected'));
+function renderSlots2(){
+  const dateStr=document.getElementById('bk-date2').value;
+  const wrap=document.getElementById('slot-grid2');
+  if(!wrap)return;
+  if(!dateStr){wrap.style.display='none';selectedSlot2=null;return;}
+  wrap.style.display='grid';
+  renderSlotsInto(dateStr,wrap,selectedSlot2,(d,h,m,t)=>{selectedSlot2={date:d,h,m,type:t};renderSlots2();});
+}
+function renderSlots3(){
+  const dateStr=document.getElementById('bk-date3').value;
+  const wrap=document.getElementById('slot-grid3');
+  if(!wrap)return;
+  if(!dateStr){wrap.style.display='none';selectedSlot3=null;return;}
+  wrap.style.display='grid';
+  renderSlotsInto(dateStr,wrap,selectedSlot3,(d,h,m,t)=>{selectedSlot3={date:d,h,m,type:t};renderSlots3();});
+}
+function renderSlotsInto(dateStr,grid,selSlot,onSelect){
+  const wb=getWeekBlocks();
+  const d=new Date(dateStr+'T00:00:00');
+  const day=d.getDay(),dayIdx=day===0?6:day-1;
+  const busySlots=new Set(),tentSlots=new Set();
+  wb.forEach(b=>{
+    if(b.dayIdx!==dayIdx)return;
+    if(b.lockType==='floater')return;
+    const slots=Math.max(1,Math.round((b.duration||1)*2));
+    const start=b.hour*2+(b.min===30?1:0);
+    for(let s=0;s<slots;s++){
+      if(b.lockType==='fixed')busySlots.add(start+s);
+      else tentSlots.add(start+s);
+    }
+  });
+  const cutoff=new Date(now.getTime()+24*60*60*1000);
+  let chips='';
+  for(let h=8;h<20;h++){
+    [0,30].forEach(m=>{
+      const slotIdx=h*2+(m===30?1:0);
+      const slotDt=new Date(dateStr+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00');
+      const tooSoon=slotDt<=cutoff,busy=busySlots.has(slotIdx),tent=tentSlots.has(slotIdx);
+      const unavail=tooSoon||busy;
+      const isSel=selSlot&&selSlot.date===dateStr&&selSlot.h===h&&selSlot.m===m;
+      const lbl=`${h}:${m===0?'00':'30'}${tent?'~':''}`;
+      chips+=`<div class="slot-chip${unavail?' unavail':''}${isSel?' selected':''}${tent&&!unavail?' tentative':''}"
+        onclick="(${onSelect.toString()})('${dateStr}',${h},${m},'${tent?'tentative':'free'}')">${lbl}</div>`;
+    });
+  }
+  grid.innerHTML=chips;
+}
+function selectSlot(date,h,m,type){
+  selectedSlot={date,h,m,type:type||'free'};
   renderSlots();
+  // Show tentative notice
+  const notice=document.getElementById('tent-notice');
+  if(notice)notice.style.display=(type==='tentative')?'block':'none';
 }
 
 async function submitBooking(){
@@ -375,6 +464,8 @@ async function submitBooking(){
   const btn=document.querySelector('.bk-btn-p');
   btn.textContent='Sending...';btn.disabled=true;
 
+  const slot2=selectedSlot2,slot3=selectedSlot3;
+  const autoConfirm=selectedSlot.type==='free';
   try{
     const resp=await fetch(SB_BOOK_URL+'/rest/v1/booking_requests',{
       method:'POST',
@@ -390,15 +481,23 @@ async function submitBooking(){
         requested_hour:selectedSlot.h,
         requested_min:selectedSlot.m,
         duration_mins:dur,
-        status:'pending'
+        status:autoConfirm?'approved':'pending',
+        notes:JSON.stringify({
+          slot_type:selectedSlot.type,
+          secondary:slot2?{date:slot2.date,hour:slot2.h,min:slot2.m}:null,
+          tertiary:slot3?{date:slot3.date,hour:slot3.h,min:slot3.m}:null,
+        })
       })
     });
     if(!resp.ok)throw new Error(resp.status);
+    const confirmMsg=autoConfirm
+      ?'Your meeting is <strong>confirmed</strong>! A calendar invite will follow.'
+      :'This slot is tentative — you'll hear back by email once confirmed.';
     document.getElementById('bk-body').innerHTML=`
       <div class="success-box">
-        <div class="success-icon">✓</div>
-        <div class="success-title">Request sent!</div>
-        <div class="success-sub">Your request for ${selectedSlot.date} at ${selectedSlot.h}:${selectedSlot.m===0?'00':'30'} has been sent.<br><br>You'll hear back via email.</div>
+        <div class="success-icon">${autoConfirm?'✓':'⏳'}</div>
+        <div class="success-title">${autoConfirm?'Meeting confirmed!':'Request sent!'}</div>
+        <div class="success-sub">${selectedSlot.date} at ${selectedSlot.h}:${selectedSlot.m===0?'00':'30'}<br><br>${confirmMsg}</div>
         <div class="bk-actions" style="justify-content:center;margin-top:1rem">
           <button class="bk-btn" onclick="document.getElementById('bk-overlay').style.display='none'">Close</button>
         </div>
