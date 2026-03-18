@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corné's Availability</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#fff;--bg2:#f5f5f3;--bg3:#ebebea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9ca3a0;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --radius:8px;--radius-lg:12px;
+  --info:#1a6fbf;--info-bg:#e8f1fb;
+  --busy:#e07020;--busy-bg:#fdf0e6;
+  --free:#2d7a3a;--free-bg:#e8f5ea;
+  --slot-h:20px;--label-w:46px;--col-w:110px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#242422;--bg3:#2e2e2c;
+  --text:#e8e8e4;--text2:#a0a09a;--text3:#6b6b67;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+  --info-bg:#0d2a4a;--busy-bg:#3a1e08;--free-bg:#0d2a14;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:13px;}
+#app{max-width:920px;margin:0 auto;padding:16px 10px 40px;}
+.header{margin-bottom:16px;}
+.header h1{font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.header p{font-size:12px;color:var(--text2);}
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.week-lbl{font-size:13px;font-weight:600;color:var(--text);min-width:200px;text-align:center;}
+.btn{padding:5px 11px;font-size:12px;border:.5px solid var(--border2);background:var(--bg);border-radius:var(--radius);cursor:pointer;color:var(--text);}
+.btn:hover{background:var(--bg3);}
+.legend{display:flex;gap:12px;margin-bottom:10px;padding:6px 8px;background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+.status-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);margin-bottom:10px;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--free);}
+.status-dot.loading{background:var(--info);animation:pulse .8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.grid-outer{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.grid-wrap{overflow-x:auto;}
+.grid{display:grid;grid-template-columns:var(--label-w) repeat(7,var(--col-w));}
+.gcorner{background:var(--bg2);border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);}
+.ghead{background:var(--bg2);border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);padding:6px 3px;text-align:center;}
+.ghead-name{font-size:11px;font-weight:600;color:var(--text);}
+.ghead-date{font-size:9px;color:var(--text2);}
+.today-head{background:var(--info-bg);}
+.today-head .ghead-name{color:var(--info);}
+.ghour{display:flex;align-items:flex-start;justify-content:flex-end;padding-right:4px;padding-top:1px;font-size:9px;color:var(--text3);border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);height:var(--slot-h);background:var(--bg);}
+.ghour.half{font-size:7px;color:var(--border);border-bottom:.5px dashed var(--border);}
+.gcell{border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);height:var(--slot-h);position:relative;background:var(--bg);}
+.gcell.half{border-bottom:.5px dashed var(--border);}
+.gcell.today-col{background:color-mix(in srgb,var(--info-bg) 20%,var(--bg));}
+.gcell.free-slot{background:color-mix(in srgb,var(--free-bg) 35%,var(--bg));}
+.gcell.busy-slot{background:color-mix(in srgb,var(--busy-bg) 35%,var(--bg));}
+.gcell.tent-slot{background:color-mix(in srgb,var(--busy-bg) 15%,var(--bg));}
+.busy-blk{position:absolute;left:1px;right:1px;top:1px;border-radius:4px;background:var(--busy-bg);border:1.5px solid var(--busy);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--busy);overflow:hidden;}
+.tent-blk{position:absolute;left:1px;right:1px;top:1px;border-radius:4px;background:var(--busy-bg);border:1.5px dashed var(--busy);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--busy);overflow:hidden;opacity:.6;background-image:repeating-linear-gradient(45deg,rgba(224,112,32,.08) 0px,rgba(224,112,32,.08) 3px,transparent 3px,transparent 7px);}
+.day-summary{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:10px;}
+.day-sum{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius);padding:7px 8px;text-align:center;}
+.day-sum-name{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px;}
+.day-sum-val{font-size:13px;font-weight:600;color:var(--free);}
+.day-sum-val.busy{color:var(--busy);}
+.day-sum-sub{font-size:9px;color:var(--text3);margin-top:1px;}
+.footer{margin-top:16px;font-size:10px;color:var(--text3);text-align:center;}
+.book-btn{position:fixed;bottom:20px;right:20px;background:var(--free);color:#fff;border:none;border-radius:24px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:50;}
+.book-btn:hover{opacity:.88;}
+.bk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:10px;}
+.bk-modal{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;width:360px;max-width:96vw;max-height:90vh;overflow-y:auto;}
+.bk-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:.9rem;}
+.bk-frow{margin-bottom:9px;}
+.bk-frow label{font-size:10px;color:var(--text2);display:block;margin-bottom:2px;}
+.bk-frow input,.bk-frow select,.bk-frow textarea{width:100%;padding:6px 8px;font-size:12px;border:.5px solid var(--border2);border-radius:8px;background:var(--bg);color:var(--text);font-family:inherit;}
+.bk-frow input:focus,.bk-frow select:focus,.bk-frow textarea:focus{outline:none;border-color:var(--free);}
+.bk-frow textarea{height:64px;resize:none;}
+.bk-actions{display:flex;gap:6px;margin-top:.9rem;}
+.bk-btn{padding:6px 14px;font-size:12px;border:.5px solid var(--border2);border-radius:8px;cursor:pointer;background:transparent;color:var(--text);}
+.bk-btn:hover{background:var(--bg2);}
+.bk-btn-p{background:var(--free);color:#fff;border-color:var(--free);}
+.bk-btn-p:hover{opacity:.85;}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-height:200px;overflow-y:auto;margin-top:4px;}
+.slot-chip{padding:5px 4px;font-size:11px;border:.5px solid var(--border2);border-radius:6px;cursor:pointer;text-align:center;background:var(--bg);color:var(--text2);}
+.slot-chip:hover{border-color:var(--free);color:var(--free);}
+.slot-chip.selected{background:var(--free-bg);border-color:var(--free);color:var(--free);font-weight:600;}
+.slot-chip.unavail{opacity:.35;cursor:not-allowed;pointer-events:none;}
+.success-box{text-align:center;padding:1.5rem 1rem;}
+.success-icon{font-size:40px;margin-bottom:12px;}
+.success-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.success-sub{font-size:12px;color:var(--text2);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>Corné's availability</h1>
+    <p>Fixed commitments show as Busy. Flexible blocks show as available. Click a week to browse.</p>
+  </div>
+
+  <div class="week-nav">
+    <button class="btn" onclick="chWk(-1)">‹</button>
+    <span class="week-lbl" id="wlbl"></span>
+    <button class="btn" onclick="chWk(1)">›</button>
+    <button class="btn" onclick="chWk(0)">This week</button>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot loading" id="sdot"></div>
+    <span id="stxt">Loading...</span>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="leg-dot"style="background:var(--busy)"></div>Busy (fixed)</div>
+    <div class="leg"><div class="leg-dot"style="background:var(--busy);opacity:.45"></div>Tentative (can move)</div>
+    <div class="leg"><div class="leg-dot"style="background:var(--free)"></div>Likely free</div>
+  </div>
+
+  <div class="grid-outer">
+    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+  </div>
+
+  <div class="day-summary" id="day-summary"></div>
+
+  <div class="footer">Read-only view · Data updates automatically · Click a free slot to request a meeting</div>
+</div>
+<button class="book-btn" onclick="openBooking()">+ Request meeting</button>
+<div class="bk-overlay" id="bk-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="bk-modal"><div id="bk-body"></div></div>
+</div>
+
+<script>
+const SB_URL='https://ygtmgtoemcuxvyveysdv.supabase.co';
+const SB_KEY='sb_publishable_WMGOMBRjiY72TTgXQI3mzQ_RJxYL14L';
+const SB_H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SLOTS=[];
+for(let h=5;h<22;h++){SLOTS.push({h,m:0});SLOTS.push({h,m:30});}
+
+let weekOffset=0;
+let state={blocks:[],deadlines:[]};
+
+function weekMon(off){const n=new Date();n.setHours(0,0,0,0);const d=n.getDay(),diff=d===0?-6:1-d;n.setDate(n.getDate()+diff+off*7);return n;}
+function weekDates(off){const m=weekMon(off);return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});}
+function isoDate(d){return d.toISOString().slice(0,10);}
+function weekKey(off){return isoDate(weekMon(off));}
+function fmtDate(d){return d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});}
+function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear();}
+
+async function loadData(){
+  document.getElementById('sdot').className='status-dot loading';
+  document.getElementById('stxt').textContent='Loading...';
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/planner_data?id=eq.main&select=data',{headers:SB_H});
+    const rows=await r.json();
+    if(rows.length&&rows[0].data){const d=rows[0].data;state={blocks:d.blocks||[],deadlines:d.deadlines||[]};}
+    document.getElementById('sdot').className='status-dot';document.getElementById('stxt').textContent='Up to date';
+    render();
+  }catch(e){document.getElementById('sdot').style.background='#b83232';document.getElementById('stxt').textContent='Could not load';}
+}
+
+function getWeekBlocks(){
+  const wk=weekKey(weekOffset),dates=weekDates(weekOffset),expanded=[];
+  state.blocks.forEach(b=>{
+    if(b.week===wk){expanded.push({...b});return;}
+    if(!b.recur||b.recur==='none')return;
+    if(b.recur==='weekly'){
+      dates.forEach((d,di)=>{
+        if(di===b.dayIdx){
+          const oid=b.id+'__'+wk;
+          const over=state.blocks.find(x=>x.overrideOf===oid);
+          if(over)expanded.push({...over});
+          else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
+            expanded.push({...b,week:wk,id:oid,dayIdx:di});
+        }
+      });
+    }else if(b.recur==='custom'&&b.recurDays){
+      dates.forEach((d,di)=>{
+        if(b.recurDays.includes(di)){
+          const oid=b.id+'__'+wk+'__'+di;
+          const over=state.blocks.find(x=>x.overrideOf===oid);
+          if(over)expanded.push({...over});
+          else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
+            expanded.push({...b,week:wk,dayIdx:di,id:oid});
+        }
+      });
+    }
+  });
+  return expanded;
+}
+
+function render(){
+  const dates=weekDates(weekOffset);
+  const m=weekMon(weekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
+  document.getElementById('wlbl').textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
+  renderGrid(dates);renderSummary(dates);
+}
+
+function renderGrid(dates){
+  const wb=getWeekBlocks();
+
+  // For each day, build a set of slots occupied by each block type (for background)
+  // and a map of slot -> block for blocks that START at that slot
+  const busyOccupied={},tentOccupied={};
+  const blockStarts={}; // key: "di_h_m" -> block
+
+  wb.forEach(b=>{
+    const type=b.lockType==='fixed'?'busy':b.lockType==='anchored'?'tent':null;
+    if(!type)return;
+    const map=type==='busy'?busyOccupied:tentOccupied;
+    if(!map[b.dayIdx])map[b.dayIdx]=new Set();
+    const slots=Math.max(1,Math.round((b.duration||1)*2));
+    const startSlot=b.hour*2+(b.min===30?1:0);
+    for(let s=0;s<slots;s++)map[b.dayIdx].add(startSlot+s);
+    // Record the start slot
+    const key=b.dayIdx+'_'+b.hour+'_'+b.min;
+    if(!blockStarts[key])blockStarts[key]=b;
+  });
+
+  let html='<div class="gcorner"></div>';
+  dates.forEach((d,i)=>{
+    const tod=isToday(d);
+    html+=`<div class="ghead${tod?' today-head':''}">
+      <div class="ghead-name">${DAYS[i]}</div>
+      <div class="ghead-date">${fmtDate(d)}</div>
+    </div>`;
+  });
+
+  SLOTS.forEach(({h,m})=>{
+    const isHalf=m===30;
+    const slotIdx=h*2+(m===30?1:0);
+    html+=`<div class="ghour${isHalf?' half':''}">${isHalf?'·':h+':00'}</div>`;
+    dates.forEach((d,di)=>{
+      const tod=isToday(d);
+      const isBusy=(busyOccupied[di]||new Set()).has(slotIdx);
+      const isTent=(tentOccupied[di]||new Set()).has(slotIdx);
+      const isFree=!isBusy&&!isTent&&h>=8&&h<=20;
+      const bgCls=isBusy?' busy-slot':isTent?' tent-slot':isFree?' free-slot':'';
+
+      // Only render a block element if one STARTS here
+      const key=di+'_'+h+'_'+m;
+      const b=blockStarts[key];
+      let inner='';
+      if(b){
+        const slots=Math.max(1,Math.round((b.duration||1)*2));
+        const hpx=slots*20-2;
+        const isFixed=b.lockType==='fixed';
+        const cls=isFixed?'busy-blk':'tent-blk';
+        const lbl=isFixed?'Busy':'Tentative';
+        inner=`<div class="${cls}"style="height:${hpx}px;z-index:4">${lbl}</div>`;
+      }
+
+      html+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${bgCls}">${inner}</div>`;
+    });
+  });
+  document.getElementById('grid').innerHTML=html;
+}
+function renderSummary(dates){
+  const wb=getWeekBlocks();
+  document.getElementById('day-summary').innerHTML=dates.map((d,i)=>{
+    const busyBlocks=wb.filter(b=>b.dayIdx===i&&b.lockType==='fixed');
+    const busyHrs=busyBlocks.reduce((s,b)=>s+(b.duration||1),0);
+    const freeHrs=Math.max(0,12-busyHrs); // 08:00-20:00 = 12h window
+    const tod=isToday(d);
+    return`<div class="day-sum">
+      <div class="day-sum-name"style="${tod?'color:var(--info)':''}">${DAYS[i]}</div>
+      <div class="day-sum-val">${freeHrs}h</div>
+      <div class="day-sum-sub">free</div>
+    </div>`;
+  }).join('');
+}
+
+function chWk(d){weekOffset=d===0?0:weekOffset+d;render();}
+loadData();
+
+// ── Booking system ────────────────────────────────────────
+const SB_BOOK_URL='https://ygtmgtoemcuxvyveysdv.supabase.co';
+const SB_BOOK_KEY='sb_publishable_WMGOMBRjiY72TTgXQI3mzQ_RJxYL14L';
+
+let selectedSlot=null;
+
+function openBooking(preDate,preH,preM){
+  selectedSlot=null;
+  document.getElementById('bk-overlay').style.display='flex';
+  renderBookingStep1(preDate,preH,preM);
+}
+
+function renderBookingStep1(preDate,preH,preM){
+  // Build date options — next 14 days, skip today+tomorrow (24h rule)
+  const now=new Date();
+  const minDate=new Date(now);minDate.setDate(now.getDate()+1);minDate.setHours(23,59,59);
+  const dates=[];
+  for(let i=2;i<=16;i++){
+    const d=new Date(now);d.setDate(now.getDate()+i);d.setHours(0,0,0,0);
+    dates.push(d);
+  }
+  const dayOpts=dates.map(d=>{
+    const dk=isoDate(d);
+    return`<option value="${dk}"${preDate===dk?' selected':''}>${d.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})}</option>`;
+  }).join('');
+
+  document.getElementById('bk-body').innerHTML=`
+    <div class="bk-title">Request a meeting</div>
+    <div class="bk-frow"><label>Your name</label><input id="bk-name" placeholder="e.g. Liam van der Berg"></div>
+    <div class="bk-frow"><label>Your email</label><input id="bk-email" type="email" placeholder="liam@example.com"></div>
+    <div class="bk-frow"><label>Reason</label><textarea id="bk-reason" placeholder="What would you like to meet about?"></textarea></div>
+    <div class="bk-frow"><label>Duration</label>
+      <select id="bk-dur">
+        <option value="30">30 minutes</option>
+        <option value="60" selected>1 hour</option>
+        <option value="90">1.5 hours</option>
+      </select>
+    </div>
+    <div class="bk-frow"><label>Preferred day</label>
+      <select id="bk-date" onchange="renderSlots()">${dayOpts}</select>
+    </div>
+    <div class="bk-frow"><label>Available slots</label>
+      <div class="slot-grid" id="slot-grid"></div>
+    </div>
+    <div class="bk-actions">
+      <button class="bk-btn bk-btn-p" onclick="submitBooking()">Send request</button>
+      <button class="bk-btn" onclick="document.getElementById('bk-overlay').style.display='none'">Cancel</button>
+    </div>`;
+  renderSlots();
+  if(preH!=null)selectSlot(preDate,preH,preM);
+}
+
+function renderSlots(){
+  const dateStr=document.getElementById('bk-date').value;
+  const wb=getWeekBlocks();
+  const d=new Date(dateStr+'T00:00:00');
+  const day=d.getDay();
+  const dayIdx=day===0?6:day-1;
+  const grid=document.getElementById('slot-grid');
+  if(!grid)return;
+
+  // Build occupied slots for this day
+  const busySlots=new Set();
+  wb.forEach(b=>{
+    if(b.dayIdx!==dayIdx)return;
+    if(b.lockType==='floater')return;
+    const slots=Math.max(1,Math.round((b.duration||1)*2));
+    const start=b.hour*2+(b.min===30?1:0);
+    for(let s=0;s<slots;s++)busySlots.add(start+s);
+  });
+
+  const chips=[];
+  for(let h=8;h<20;h++){
+    [0,30].forEach(m=>{
+      const slotIdx=h*2+(m===30?1:0);
+      const busy=busySlots.has(slotIdx);
+      const timeStr=`${h}:${m===0?'00':'30'}`;
+      const isSelected=selectedSlot&&selectedSlot.date===dateStr&&selectedSlot.h===h&&selectedSlot.m===m;
+      chips.push(`<div class="slot-chip${busy?' unavail':''}${isSelected?' selected':''}"
+        onclick="selectSlot('${dateStr}',${h},${m})">${timeStr}</div>`);
+    });
+  }
+  grid.innerHTML=chips.join('');
+}
+
+function selectSlot(date,h,m){
+  selectedSlot={date,h,m};
+  document.querySelectorAll('.slot-chip').forEach(c=>c.classList.remove('selected'));
+  renderSlots();
+}
+
+async function submitBooking(){
+  const name=document.getElementById('bk-name').value.trim();
+  const email=document.getElementById('bk-email').value.trim();
+  const reason=document.getElementById('bk-reason').value.trim();
+  const dur=parseInt(document.getElementById('bk-dur').value);
+  if(!name||!email){alert('Please enter your name and email.');return;}
+  if(!selectedSlot){alert('Please select a time slot.');return;}
+  if(!email.includes('@')){alert('Please enter a valid email.');return;}
+
+  const btn=document.querySelector('.bk-btn-p');
+  btn.textContent='Sending...';btn.disabled=true;
+
+  try{
+    const resp=await fetch(SB_BOOK_URL+'/rest/v1/booking_requests',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_BOOK_KEY,
+        'Authorization':'Bearer '+SB_BOOK_KEY,
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({
+        name,email,reason,
+        requested_date:selectedSlot.date,
+        requested_hour:selectedSlot.h,
+        requested_min:selectedSlot.m,
+        duration_mins:dur,
+        status:'pending'
+      })
+    });
+    if(!resp.ok)throw new Error(resp.status);
+    document.getElementById('bk-body').innerHTML=`
+      <div class="success-box">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Request sent!</div>
+        <div class="success-sub">Your request for ${selectedSlot.date} at ${selectedSlot.h}:${selectedSlot.m===0?'00':'30'} has been sent.<br><br>You'll hear back via email.</div>
+        <div class="bk-actions" style="justify-content:center;margin-top:1rem">
+          <button class="bk-btn" onclick="document.getElementById('bk-overlay').style.display='none'">Close</button>
+        </div>
+      </div>`;
+  }catch(e){
+    btn.textContent='Send request';btn.disabled=false;
+    alert('Something went wrong. Please try again.');
+  }
+}
+
+// Make free slots clickable to pre-fill booking
+const origRenderGrid=renderGrid;
+renderGrid=function(dates){
+  origRenderGrid(dates);
+  // Add click handlers to free cells for quick booking
+  document.querySelectorAll('.gcell.free-slot').forEach(cell=>{
+    cell.style.cursor='pointer';
+    cell.addEventListener('click',function(){
+      const onclick=this.getAttribute('onclick')||'';
+      // cells don't have onclick in share.html — get coords from position
+    });
+  });
+};
+</script>
+</body>
+</html>
