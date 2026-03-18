@@ -522,19 +522,7 @@ async function submitBooking(){
   }
 }
 
-// Make free slots clickable to pre-fill booking
-const origRenderGrid=renderGrid;
-renderGrid=function(dates){
-  origRenderGrid(dates);
-  // Add click handlers to free cells for quick booking
-  document.querySelectorAll('.gcell.free-slot').forEach(cell=>{
-    cell.style.cursor='pointer';
-    cell.addEventListener('click',function(){
-      const onclick=this.getAttribute('onclick')||'';
-      // cells don't have onclick in share.html — get coords from position
-    });
-  });
-};
+// Booking system ready
 </script>
 </body>
 </html>
