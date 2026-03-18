@@ -481,17 +481,20 @@ function buildSlotAvailability(dateStr){
   const day=dt.getDay(),dayIdx=day===0?6:day-1;
   const wb=getBlocksForAnyDate(dateStr);
   const busySlots=new Set(),tentSlots=new Set();
+  console.log('buildSlotAvailability for',dateStr,'dayIdx=',dayIdx,'blocks found:',wb.length);
   wb.forEach(b=>{
+    console.log('  block:',b.title||b.activity,'dayIdx=',b.dayIdx,'hour=',b.hour,'lock=',b.lockType,'week=',b.week);
     if(b.dayIdx!==dayIdx||b.lockType==='floater')return;
-    if(b.hour==null)return; // skip malformed blocks
+    if(b.hour==null)return;
     const slots=Math.max(1,Math.round((b.duration||1)*2));
     const min=b.min||0;
     const start=(b.hour||0)*2+(min===30?1:0);
     for(let s=0;s<slots;s++){
       if(b.lockType==='fixed')busySlots.add(start+s);
-      else tentSlots.add(start+s); // anchored or anything else = tentative
+      else tentSlots.add(start+s);
     }
   });
+  console.log('  busySlots:',Array.from(busySlots),'tentSlots:',Array.from(tentSlots));
   return{busySlots,tentSlots};
 }
 
