@@ -453,7 +453,10 @@ function getBlocksForAnyDate(dateStr){
   const wk=isoDate(mon);
   const out=[];
   state.blocks.forEach(b=>{
-    if(b.week===wk){out.push(b);return;}
+    // Week-specific block on this exact week
+    if(b.week===wk&&b.dayIdx===di){out.push(b);return;}
+    // Week-specific override from another week — skip
+    if(b.week&&b.week!==wk)return;
     if(!b.recur||b.recur==='none')return;
     const di=day===0?6:day-1;
     if(b.recur==='weekly'&&b.dayIdx===di){
@@ -480,11 +483,13 @@ function buildSlotAvailability(dateStr){
   const busySlots=new Set(),tentSlots=new Set();
   wb.forEach(b=>{
     if(b.dayIdx!==dayIdx||b.lockType==='floater')return;
+    if(b.hour==null)return; // skip malformed blocks
     const slots=Math.max(1,Math.round((b.duration||1)*2));
-    const start=b.hour*2+(b.min===30?1:0);
+    const min=b.min||0;
+    const start=(b.hour||0)*2+(min===30?1:0);
     for(let s=0;s<slots;s++){
       if(b.lockType==='fixed')busySlots.add(start+s);
-      else tentSlots.add(start+s);
+      else tentSlots.add(start+s); // anchored or anything else = tentative
     }
   });
   return{busySlots,tentSlots};
