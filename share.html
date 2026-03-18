@@ -506,7 +506,7 @@ async function submitBooking(){
     if(!resp.ok)throw new Error(resp.status);
     const confirmMsg=autoConfirm
       ?'Your meeting is <strong>confirmed</strong>! A calendar invite will follow.'
-      :'This slot is tentative — you'll hear back by email once confirmed.';
+      :'This slot is tentative — you will hear back by email once confirmed.';
     document.getElementById('bk-body').innerHTML=`
       <div class="success-box">
         <div class="success-icon">${autoConfirm?'✓':'⏳'}</div>
