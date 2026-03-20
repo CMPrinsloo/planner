@@ -60,6 +60,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-b);}
 .btn-group{display:flex;gap:5px;flex-wrap:wrap;}
 
+/* Quote bar */
+.quote-bar{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.quote-text{font-size:12px;color:var(--text2);font-style:italic;flex:1;line-height:1.5;}
+.quote-author{font-size:10px;color:var(--text3);flex-shrink:0;}
+.quote-edit{font-size:10px;color:var(--text3);cursor:pointer;padding:2px 6px;border:.5px solid var(--border2);border-radius:4px;flex-shrink:0;}
+.quote-edit:hover{color:var(--info);}
+
 /* Stats */
 .stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:10px;}
 .stat{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;}
@@ -142,6 +149,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .blk.done{opacity:.52;}
 .blk.done .blk-title{text-decoration:line-through;}
 .blk.skipped{opacity:.3;border-style:dashed!important;}
+.blk.dropped{opacity:.25;border-style:dashed!important;}
+.blk.dropped .blk-title{text-decoration:line-through;color:rgba(255,255,255,.6);}
 .blk.closed-day{opacity:.4;}
 .resize-handle{position:absolute;bottom:0;left:0;right:0;height:6px;cursor:ns-resize;z-index:5;display:flex;align-items:center;justify-content:center;}
 .resize-handle::after{content:'';width:18px;height:1px;background:rgba(255,255,255,.4);border-radius:1px;}
@@ -429,6 +438,12 @@ svg.sparkline{overflow:visible;}
     </div>
   </div>
 
+  <div class="quote-bar">
+    <span class="quote-text" id="quote-text"></span>
+    <span class="quote-author" id="quote-author"></span>
+    <button class="quote-edit" onclick="manageQuotes()">✎ Quotes</button>
+  </div>
+
   <div class="stats-row">
     <div class="stat"><div class="stat-lbl">Done (work)</div><div class="stat-val" id="s-done">—</div></div>
     <div class="stat"><div class="stat-lbl">Planned (work)</div><div class="stat-val" id="s-plan">—</div></div>
@@ -488,6 +503,10 @@ svg.sparkline{overflow:visible;}
         <button class="btn" onclick="chLifeWk(0)">This week</button>
       </div>
       <div id="life-table-wrap"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px;padding:0 4px">
+        💼 Work hours auto-populate from blocks you mark as <strong>Done</strong> in the Planner tab.
+        Tap number cells to edit inline. Tap mood to cycle through. Tap checkboxes to toggle.
+      </div>
     </div>
   </div>
 </div>
@@ -661,9 +680,10 @@ async function loadSB(){
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
         mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],
+        customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],
       };
     }
-    cleanRecurringMasterStatus();setSS('ok','Synced');setST();render();
+    cleanRecurringMasterStatus();setSS('ok','Synced');setST();render();renderQuote();
   }catch(e){setSS('error','Connection error');render();}
 }
 async function saveSB(){
@@ -829,8 +849,9 @@ function renderDeadlines(dates){
     const dk=isoDate(d);
     const chips=dls.filter(x=>x.date===dk).map(x=>{
       const col=getActColor(x.activity);
+      const timeDisp=x.time?` · ${x.time}`:'';
       return`<div class="dl-chip"style="background:${col}22;color:${col};border:1px solid ${col}55"onclick="event.stopPropagation();editDeadline('${esc(x.id)}')">
-        ${esc(x.title)}${x.time?' '+x.time:''}
+        ${esc(x.title)}${timeDisp}
         <span class="dl-del"onclick="event.stopPropagation();deleteDeadline('${esc(x.id)}')">✕</span>
       </div>`;
     }).join('');
@@ -899,7 +920,7 @@ function renderGrid(dates){
         const slots=Math.max(1,Math.round((b.duration||1)*2));
         const hpx=slots*22-2;
         const lc=b.lockType||'anchored';
-        const sc=b.status==='done'?' done':b.status==='skipped'?' skipped':'';
+        const sc=b.status==='done'?' done':b.status==='skipped'?' skipped':b.status==='dropped'?' dropped':'';
         const cc=closed?' closed-day':'';
         const stripe=lc==='anchored'?'background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.17) 0px,rgba(255,255,255,.17) 3px,transparent 3px,transparent 7px);':'';
         const faded=lc==='floater'?'opacity:.5;':'';
@@ -1369,7 +1390,7 @@ function showReview(){
     </div>
     <div class="act-bar-nums">${r.ac}h / ${r.pl}h</div>
   </div>`).join('');
-  const skipped=wb.filter(b=>b.status==='skipped');
+  const skipped=wb.filter(b=>b.status==='skipped'||b.status==='dropped');
   const skHtml=skipped.length?skipped.map(b=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:3px">
     <div style="width:8px;height:8px;border-radius:2px;background:${getActColor(b.activity)};flex-shrink:0"></div>
     ${b.title||getActLabel(b.activity)} (${DAYS[b.dayIdx]})</div>`).join('')
@@ -1398,7 +1419,32 @@ function showReview(){
     </div>
     <div class="review-section">
       <div class="review-section-title">Skipped / moved</div>${skHtml}
-    </div>`;
+    </div>
+    <div class="review-section" id="life-review-section"></div>`;
+  // Life summary
+  const lDates=weekDates(weekOffset);
+  const lDays=lDates.map(d=>getLifeEntry(isoDate(d)));
+  const lSleep=lDays.map(e=>e.sleep||null).filter(v=>v!==null);
+  const lAvgSleep=lSleep.length?(lSleep.reduce((a,b)=>a+b,0)/lSleep.length).toFixed(1):'—';
+  const lMood=lDays.map(e=>e.mood||null).filter(v=>v!==null);
+  const lAvgMood=lMood.length?(lMood.reduce((a,b)=>a+b,0)/lMood.length).toFixed(1):'—';
+  const lMoodE={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
+  const lEx=lDays.filter(e=>e.exercise===true).length;
+  const lPr=lDays.filter(e=>e.prayed===true).length;
+  const lMoments=lDays.map((e,i)=>e.moment
+    ?`<div style="margin-bottom:5px"><span style="font-size:9px;color:var(--text3)">${DAYS[i]}</span>
+       <div style="font-size:11px;font-style:italic;color:var(--text2)">"${esc(e.moment)}"</div></div>`
+    :'').join('');
+  const lSec=document.getElementById('life-review-section');
+  if(lSec)lSec.innerHTML=`<div class="review-section-title">🌱 Life this week</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      ${[{icon:'😴',val:lAvgSleep+'h',lbl:'Avg sleep'},{icon:lMood.length?lMoodE[Math.round(parseFloat(lAvgMood))]:'—',val:lAvgMood,lbl:'Avg mood'},{icon:'🏃',val:lEx+'/7',lbl:'Exercise'},{icon:'🙏',val:lPr+'/7',lbl:'Prayer'}]
+        .map(s=>`<div style="background:var(--bg2);border-radius:var(--radius);padding:8px;text-align:center">
+          <div style="font-size:18px">${s.icon}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${s.val}</div>
+          <div style="font-size:9px;color:var(--text3)">${s.lbl}</div></div>`).join('')}
+    </div>
+    ${lMoments?`<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">Moments of the week</div>${lMoments}`:''}`;
   document.getElementById('review-overlay').style.display='flex';
   // Draw pie chart
   setTimeout(()=>{
@@ -1679,6 +1725,7 @@ function setSt(s){
 }
 
 function saveBlk(){
+  saveUndoSnapshot();
   const wk=weekKey(weekOffset);
   const title=document.getElementById('f-title').value.trim();
   const activity=document.getElementById('f-act').value;
@@ -1726,11 +1773,11 @@ function saveBlk(){
     state.blocks.push({id:uid(),week:wk,title,activity,dayIdx,lockType,hour,min,duration,secondaryActivity,secondary,notes,recur,recurDays:[...modalRecurDays],status:'pending',actualHours:null,projectId});
   }
   sched();closeModal();render();
-  showUndoToast('Block saved');
 }
 
 function deleteBlk(){
   if(!editing)return;if(!confirm('Delete this block?'))return;
+  saveUndoSnapshot();
   if(editing.isGenerated){
     const orig=state.blocks.find(x=>x.id===editing.originalId);
     if(orig){if(!orig.excludeWeeks)orig.excludeWeeks=[];
@@ -1949,6 +1996,7 @@ function isSlotOccupied(di,hr,m,excludeId){
 }
 
 function dropBlock(id,di,hr,m){
+  saveUndoSnapshot();
   const wk=weekKey(weekOffset);
   const wb=getWeekBlocks();
   const b=wb.find(x=>x.id===id);if(!b)return;
@@ -2400,7 +2448,7 @@ setInterval(fetchBookings,5*60*1000);
 // ── Skipped events panel ─────────────────────────────────
 function updateSkippedBadge(){
   const wb=getWeekBlocks();
-  const skipped=wb.filter(b=>b.status==='skipped');
+  const skipped=wb.filter(b=>b.status==='skipped'||b.status==='dropped');
   const fab=document.getElementById('skipped-fab');
   const badge=document.getElementById('skipped-badge');
   if(fab){fab.style.display=skipped.length>0?'flex':'none';}
@@ -2409,7 +2457,7 @@ function updateSkippedBadge(){
 
 function openSkipped(){
   const wb=getWeekBlocks();
-  const skipped=wb.filter(b=>b.status==='skipped');
+  const skipped=wb.filter(b=>b.status==='skipped'||b.status==='dropped');
   const dates=weekDates(weekOffset);
   const list=document.getElementById('skipped-list');
   if(!list)return;
@@ -2458,16 +2506,94 @@ function dismissSkipped(id,action){
       if(idx>=0)state.blocks[idx].status='done';
     }
   }else{
-    // Drop — delete the block entirely for this week
+    // Drop — mark as dropped, keep in calendar as faded
+    saveUndoSnapshot();
     if(b.isGenerated){
-      const orig=state.blocks.find(x=>x.id===b.originalId);
-      if(orig){if(!orig.excludeWeeks)orig.excludeWeeks=[];orig.excludeWeeks.push(weekKey(weekOffset));}
+      const oid=b.id;
+      const ei=state.blocks.findIndex(x=>x.overrideOf===oid);
+      const obj={id:uid(),overrideOf:oid,week:weekKey(weekOffset),...b,status:'dropped'};
+      delete obj.isGenerated;delete obj.originalId;delete obj.isInstance;
+      if(ei>=0)state.blocks[ei]=obj;else state.blocks.push(obj);
     }else{
-      state.blocks=state.blocks.filter(x=>x.id!==id);
+      const idx=state.blocks.findIndex(x=>x.id===id);
+      if(idx>=0)state.blocks[idx].status='dropped';
     }
   }
   sched();render();
-  openSkipped(); // refresh panel
+  openSkipped();
+}
+
+// ── Quotes ───────────────────────────────────────────────
+const DEFAULT_QUOTES=[
+  {text:"The secret of getting ahead is getting started.",author:"Mark Twain"},
+  {text:"It does not matter how slowly you go as long as you do not stop.",author:"Confucius"},
+  {text:"You don't have to be great to start, but you have to start to be great.",author:"Zig Ziglar"},
+  {text:"Hard work beats talent when talent doesn't work hard.",author:"Tim Notke"},
+  {text:"The disciplined mind is free.",author:"Stoic proverb"},
+  {text:"Do what you can, with what you have, where you are.",author:"Theodore Roosevelt"},
+  {text:"Energy and persistence conquer all things.",author:"Benjamin Franklin"},
+  {text:"Focus on being productive instead of busy.",author:"Tim Ferriss"},
+  {text:"You miss 100% of the shots you don't take.",author:"Wayne Gretzky"},
+  {text:"Small daily improvements lead to stunning results.",author:"Robin Sharma"},
+  {text:"The man who moves a mountain begins by carrying away small stones.",author:"Confucius"},
+  {text:"An unexamined life is not worth living.",author:"Socrates"},
+  {text:"Die burger wat lees, regeer.",author:"Unknown"},
+  {text:"'n Boer maak 'n plan.",author:"Afrikaans proverb"},
+  {text:"Staan op, trek jou broek aan, en doen jou werk.",author:"Unknown"},
+  {text:"Either you run the day, or the day runs you.",author:"Jim Rohn"},
+  {text:"The goal is not to be perfect by the end. The goal is to be better today.",author:"Simon Sinek"},
+  {text:"Sleep is the best meditation.",author:"Dalai Lama"},
+];
+
+function getQuotes(){return state.customQuotes&&state.customQuotes.length?[...DEFAULT_QUOTES,...state.customQuotes]:DEFAULT_QUOTES;}
+
+function renderQuote(){
+  const quotes=getQuotes();
+  const q=quotes[Math.floor(Math.random()*quotes.length)];
+  const qt=document.getElementById('quote-text');
+  const qa=document.getElementById('quote-author');
+  if(qt)qt.textContent='"'+q.text+'"';
+  if(qa)qa.textContent='— '+q.author;
+}
+
+function manageQuotes(){
+  const custom=state.customQuotes||[];
+  document.getElementById('m2title').textContent='Manage quotes';
+  renderQuoteModal(custom);
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function renderQuoteModal(custom){
+  const list=custom.map((q,i)=>`<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:.5px solid var(--border)">
+    <div style="flex:1"><div style="font-size:12px;font-style:italic;color:var(--text)">"${esc(q.text)}"</div>
+    <div style="font-size:10px;color:var(--text3)">— ${esc(q.author)}</div></div>
+    <span style="color:var(--danger);cursor:pointer;font-size:12px;padding:2px 4px" onclick="removeQuote(${i})">✕</span>
+  </div>`).join('');
+  document.getElementById('m2body').innerHTML=`
+    ${custom.length?`<div style="margin-bottom:10px;max-height:200px;overflow-y:auto">${list}</div>`:'<div style="font-size:11px;color:var(--text3);margin-bottom:10px">No custom quotes yet — defaults always show.</div>'}
+    <div class="section-sep"></div>
+    <div class="modal-sub">Add a quote</div>
+    <div class="frow"><label>Quote text</label><textarea id="q-text" style="height:60px"></textarea></div>
+    <div class="frow"><label>Author</label><input id="q-author" placeholder="e.g. Nelson Mandela"></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="addQuote()">Add</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Close</button>
+    </div>`;
+}
+
+function addQuote(){
+  const text=document.getElementById('q-text').value.trim();
+  const author=document.getElementById('q-author').value.trim();
+  if(!text)return;
+  if(!state.customQuotes)state.customQuotes=[];
+  state.customQuotes.push({text,author:author||'Unknown'});
+  sched();renderQuoteModal(state.customQuotes);
+}
+
+function removeQuote(i){
+  if(!state.customQuotes)return;
+  state.customQuotes.splice(i,1);
+  sched();renderQuoteModal(state.customQuotes);
 }
 
 // ── Tab system ───────────────────────────────────────────
@@ -2565,11 +2691,12 @@ function renderLifeTracker(){
       const entry=getLifeEntry(dk);
       const tod=isToday(d);
       const val=row.type==='auto'?getWorkHrsForDate(dk):entry[row.id];
+      const cellId=`lc-${dk}-${row.id}`;
 
-      if(row.sparkline){
-        // Sleep sparkline row — show value + mini sparkline dot
+      if(row.id==='moment'){
+        // Moment: click opens full dialog
         const cellClass=val?'filled':'empty';
-        html+=`<td><div class="life-cell ${cellClass}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','${row.id}')">${val||'—'}</div></td>`;
+        html+=`<td><div class="life-cell ${cellClass}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}')" style="font-size:10px">${val?'✎ '+esc(val.slice(0,12))+(val.length>12?'…':''):'+ add'}</div></td>`;
       } else if(row.type==='check'){
         const cls=val===true?'life-check yes':val===false?'life-check no':'';
         const lbl=val===true?'✓':val===false?'✕':'—';
@@ -2577,41 +2704,84 @@ function renderLifeTracker(){
       } else if(row.type==='mood'){
         const moodLabels={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
         const cls=val?`life-mood-${val}`:'';
-        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','mood')">${val?moodLabels[val]:'—'}</div></td>`;
+        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="cycleMood('${dk}')">${val?moodLabels[val]:'—'}</div></td>`;
       } else if(row.type==='auto'){
-        html+=`<td><div class="life-cell${val?'':' empty'}${tod?' today-cell':''}" style="cursor:default">${val||'—'}</div></td>`;
+        const autoVal=getWorkHrsForDate(dk);
+        html+=`<td><div class="life-cell${autoVal?'':' empty'}${tod?' today-cell':''}" style="cursor:default" title="Auto from done blocks">${autoVal?autoVal+'h':'—'}</div></td>`;
+      } else if(row.sparkline){
+        // Sleep: inline number input on click
+        html+=`<td><div class="life-cell${val?'filled':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val+'h':'—'}</div></td>`;
       } else {
-        const cellClass=val?'filled':'empty';
-        const display=row.id==='moment'&&val?'✓':val||'—';
-        html+=`<td><div class="life-cell ${cellClass}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','${row.id}')">${display}</div></td>`;
+        // Generic number: inline input on click
+        html+=`<td><div class="life-cell${val?'filled':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val:'—'}</div></td>`;
       }
     });
     html+=`</tr>`;
   });
 
-  // Sleep sparkline row
-  html+=`<tr><td class="row-label" style="font-size:9px;color:var(--text3)">Sleep trend</td>`;
-  dates.forEach((d,di)=>{
-    // Draw mini sparkline as inline SVG across the week in last cell
-    if(di===0){
-      const w=dates.length*78;const h=28;const pad=4;
-      const pts=sleepVals.map((v,i)=>v!==null?{x:pad+i*(w-pad*2)/(dates.length-1),y:h-pad-(v/maxSleep*(h-pad*2))}:null);
-      const pathPts=pts.filter(p=>p!==null);
-      let pathD='';
-      pts.forEach((p,i)=>{if(p){pathD+=(pathD?'L':'M')+p.x+' '+p.y;}});
-      const dots=pathPts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--info)"/>`).join('');
-      html+=`<td colspan="${dates.length}" style="padding:4px 8px">
-        <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible">
-          ${pathD?`<path d="${pathD}" fill="none" stroke="var(--info)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`:''}
+  // Sleep sparkline — full width chart row
+  const validSleep=sleepVals.filter(v=>v!==null);
+  if(validSleep.length>=2){
+    const svgW=600,svgH=52,padL=8,padR=8,padT=8,padB=16;
+    const colW=(svgW-padL-padR)/(dates.length-1);
+    const minS=Math.max(0,Math.min(...validSleep)-1);
+    const maxS=Math.max(...validSleep)+0.5;
+    const yScale=(svgH-padT-padB)/(maxS-minS||1);
+    const pts=sleepVals.map((v,i)=>v!==null?{
+      x:padL+i*colW,
+      y:svgH-padB-(v-minS)*yScale,
+      v
+    }:null);
+    let pathD='';pts.forEach(p=>{if(p)pathD+=(pathD?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1);});
+    const dots=pts.filter(p=>p).map(p=>`
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="var(--info)" stroke="var(--bg)" stroke-width="1.5"/>
+      <text x="${p.x.toFixed(1)}" y="${(svgH-2).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--text3)">${p.v}h</text>
+    `).join('');
+    const avgS=(validSleep.reduce((a,b)=>a+b,0)/validSleep.length).toFixed(1);
+    const avgY=(svgH-padB-(avgS-minS)*yScale).toFixed(1);
+    html+=`<tr><td class="row-label" style="font-size:10px;color:var(--text2)">😴 Sleep trend<br><span style="font-size:9px;color:var(--text3)">avg ${avgS}h</span></td>
+      <td colspan="${dates.length}" style="padding:4px 8px">
+        <svg width="100%" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="overflow:visible">
+          <line x1="${padL}" y1="${avgY}" x2="${svgW-padR}" y2="${avgY}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 3"/>
+          ${pathD?`<path d="${pathD}" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:''}
           ${dots}
         </svg>
-      </td>`;
-    }
-  });
-  html+=`</tr></tbody></table>`;
+      </td></tr>`;
+  }
+  html+=`</tbody></table>`;
 
   document.getElementById('life-table-wrap').innerHTML=html;
   updateTabNotifs();
+}
+
+function inlineNum(el,date,field){
+  if(el.querySelector('input'))return;
+  const entry=getLifeEntry(date);
+  const curr=entry[field]||'';
+  const input=document.createElement('input');
+  input.type='number';input.step='0.5';input.min='0';
+  input.value=curr;
+  input.style.cssText='width:100%;height:100%;border:none;background:transparent;text-align:center;font-size:11px;color:var(--text);outline:none;';
+  el.innerHTML='';el.appendChild(input);
+  input.focus();input.select();
+  function save(){
+    if(!state.lifeLog)state.lifeLog=[];
+    let e2=state.lifeLog.find(l=>l.date===date);
+    if(!e2){e2={date};state.lifeLog.push(e2);}
+    const v=parseFloat(input.value);
+    if(!isNaN(v)&&v>0)e2[field]=v;else delete e2[field];
+    sched();renderLifeTracker();
+  }
+  input.onblur=save;
+  input.onkeydown=ev=>{if(ev.key==='Enter')input.blur();if(ev.key==='Escape'){renderLifeTracker();}};
+}
+
+function cycleMood(date){
+  if(!state.lifeLog)state.lifeLog=[];
+  let entry=state.lifeLog.find(l=>l.date===date);
+  if(!entry){entry={date};state.lifeLog.push(entry);}
+  entry.mood=entry.mood?entry.mood%5+1:1;
+  sched();renderLifeTracker();
 }
 
 function cycleLifeCheck(date,field){
@@ -2623,73 +2793,33 @@ function cycleLifeCheck(date,field){
   sched();renderLifeTracker();
 }
 
-function openLifeEntry(date,focusField){
+function openLifeEntry(date){
   const entry=getLifeEntry(date);
   const dt=new Date(date+'T00:00:00');
   const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
-  document.getElementById('m2title').textContent='Log — '+dayStr;
+  document.getElementById('m2title').textContent='✨ Moment — '+dayStr;
   document.getElementById('m2body').innerHTML=`
-    <div class="frow"><label>✨ Moment of day</label>
-      <textarea id="le-moment" style="height:60px">${esc(entry.moment||'')}</textarea></div>
-    <div class="frow-2 frow">
-      <div><label>😊 Mood (1-5)</label>
-        <select id="le-mood">
-          <option value="">—</option>
-          ${[1,2,3,4,5].map(n=>`<option value="${n}"${entry.mood==n?' selected':''}>${n} ${{1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'}[n]}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>😴 Sleep (hrs)</label>
-        <input id="le-sleep" type="number" min="0" max="24" step="0.5" value="${entry.sleep||''}"></div>
-    </div>
-    <div class="frow-2 frow">
-      <div><label>⚖️ Weight (kg)</label>
-        <input id="le-weight" type="number" min="0" step="0.1" value="${entry.weight||''}"></div>
-      <div><label>📱 Screen time (hrs)</label>
-        <input id="le-screen" type="number" min="0" step="0.5" value="${entry.screen||''}"></div>
-    </div>
-    <div class="frow"><label>Checkboxes</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-        ${['exercise','prayed','bible'].map(f=>{
-          const icons={exercise:'🏃',prayed:'🙏',bible:'📖'};
-          const labels={exercise:'Exercise',prayed:'Prayed',bible:'Bible'};
-          return`<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
-            <input type="checkbox" id="le-${f}"${entry[f]?' checked':''}> ${icons[f]} ${labels[f]}
-          </label>`;
-        }).join('')}
-      </div>
-    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Write a highlight, reflection, or anything worth remembering from this day.</div>
+    <div class="frow"><textarea id="le-moment" style="height:100px;font-size:13px">${esc(entry.moment||'')}</textarea></div>
     <div class="mactions">
-      <button class="btn btn-p" onclick="saveLifeEntry('${date}')">Save</button>
+      <button class="btn btn-p" onclick="saveMoment('${date}')">Save</button>
       <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+      ${entry.moment?`<button class="btn btn-danger" onclick="saveMoment('${date}','')">Clear</button>`:''}
     </div>`;
   document.getElementById('mbg2').style.display='flex';
-  // Focus the right field
-  setTimeout(()=>{const el=document.getElementById('le-'+focusField);if(el)el.focus();},100);
+  setTimeout(()=>{const el=document.getElementById('le-moment');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},100);
 }
 
-function saveLifeEntry(date){
+function saveMoment(date,override){
   if(!state.lifeLog)state.lifeLog=[];
   let entry=state.lifeLog.find(l=>l.date===date);
   if(!entry){entry={date};state.lifeLog.push(entry);}
-  const get=(id,type='text')=>{
-    const el=document.getElementById(id);if(!el)return undefined;
-    if(type==='check')return el.checked;
-    if(type==='num')return el.value?parseFloat(el.value):undefined;
-    return el.value.trim()||undefined;
-  };
-  entry.moment=get('le-moment');
-  entry.mood=get('le-mood')?parseInt(get('le-mood')):undefined;
-  entry.sleep=get('le-sleep','num');
-  entry.weight=get('le-weight','num');
-  entry.screen=get('le-screen','num');
-  entry.exercise=get('le-exercise','check');
-  entry.prayed=get('le-prayed','check');
-  entry.bible=get('le-bible','check');
-  // Clean undefineds
-  Object.keys(entry).forEach(k=>{if(entry[k]===undefined)delete entry[k];});
-  sched();document.getElementById('mbg2').style.display='none';
-  renderLifeTracker();updateTabNotifs();
+  const val=override!==undefined?override:document.getElementById('le-moment').value.trim();
+  if(val)entry.moment=val;else delete entry.moment;
+  sched();document.getElementById('mbg2').style.display='none';renderLifeTracker();
 }
+
+// saveLifeEntry replaced by saveMoment + inlineNum + cycleLifeCheck
 
 // ── Undo system ───────────────────────────────────────────
 let undoSnapshot=null;
