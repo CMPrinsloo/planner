@@ -27,6 +27,16 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:13px;line-height:1.4;}
 #app{max-width:1140px;margin:0 auto;padding:10px 8px 60px;}
 
+/* Tab bar */
+.tab-bar{display:flex;align-items:center;gap:2px;margin-bottom:10px;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:4px;position:relative;}
+.tab-btn{flex:1;padding:7px 10px;font-size:12px;font-weight:500;border:none;background:transparent;border-radius:var(--radius);cursor:pointer;color:var(--text2);transition:all .15s;position:relative;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab-btn:hover{background:var(--bg2);color:var(--text);}
+.tab-btn.active{background:var(--bg3);color:var(--text);font-weight:600;}
+.tab-notif{width:7px;height:7px;border-radius:50%;background:var(--warn);position:absolute;top:4px;right:8px;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.sync-mini{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);margin-left:auto;padding:0 6px;}
+
 /* Sync bar */
 .sync-bar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);margin-bottom:8px;font-size:11px;flex-wrap:wrap;}
 .sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -160,6 +170,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .skipped-act.dismiss{color:var(--success);border-color:var(--success-b);}
 .skipped-act.drop{color:var(--danger);border-color:var(--danger-b);}
 .fab-bell{background:var(--bg);color:var(--text);border:.5px solid var(--border2);position:relative;}
+.undo-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;}
+.undo-toast.visible{opacity:1;pointer-events:all;}
+.undo-btn{padding:3px 10px;font-size:11px;border:.5px solid var(--info-b);border-radius:6px;cursor:pointer;background:var(--info-bg);color:var(--info);}
 .bell-badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;}
 
 /* Inbox panel */
@@ -250,6 +263,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-ms input:focus,.add-st input:focus{border-color:var(--info);}
 .add-proj-btn{padding:10px;text-align:center;cursor:pointer;color:var(--info);font-size:12px;border-top:.5px solid var(--border2);}
 .add-proj-btn:hover{background:var(--bg2);}
+
+/* Life tracker */
+.life-grid{overflow-x:auto;padding:10px;}
+.life-table{border-collapse:collapse;font-size:11px;min-width:100%;}
+.life-table th{padding:6px 8px;font-size:9px;font-weight:600;color:var(--text3);text-align:center;text-transform:uppercase;letter-spacing:.04em;border-bottom:.5px solid var(--border2);white-space:nowrap;}
+.life-table th.row-label{text-align:left;min-width:100px;}
+.life-table td{padding:3px 4px;border-bottom:.5px solid var(--border);vertical-align:middle;text-align:center;}
+.life-table td.row-label{text-align:left;padding:4px 8px;font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;}
+.life-cell{min-width:70px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:5px;cursor:pointer;font-size:11px;color:var(--text);background:var(--bg2);border:.5px solid var(--border);transition:background .1s;}
+.life-cell:hover{background:var(--bg3);}
+.life-cell.filled{background:var(--success-bg);border-color:var(--success-b);color:var(--success);font-weight:600;}
+.life-cell.today-cell{border-color:var(--info-b);background:var(--info-bg);}
+.life-cell.empty{color:var(--text3);}
+.life-check.yes{background:var(--success-bg);border-color:var(--success-b);color:var(--success);}
+.life-check.no{background:var(--danger-bg);border-color:var(--danger-b);color:var(--danger);}
+.life-mood-1{background:#fbebeb;color:#b83232;}
+.life-mood-2{background:#fff8e0;color:#996600;}
+.life-mood-3{background:var(--bg2);color:var(--text2);}
+.life-mood-4{background:#e8f5ea;color:#2d7a3a;}
+.life-mood-5{background:#e8f1fb;color:#1a6fbf;}
+.sparkline-cell{min-width:70px;height:32px;padding:0 2px;}
+svg.sparkline{overflow:visible;}
 
 /* Mind tracker */
 .mind-grid{padding:12px;}
@@ -357,16 +392,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </head>
 <body>
 <div id="app">
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📅 Planner</button>
+    <button class="tab-btn" id="tab-mind" onclick="switchTab('mind')">🧠 Mind<span class="tab-notif" id="mind-notif" style="display:none"></span></button>
+    <button class="tab-btn" id="tab-life" onclick="switchTab('life')">🌱 Life<span class="tab-notif" id="life-notif" style="display:none"></span></button>
+    <div class="sync-mini">
+      <div class="sync-dot loading" id="sync-dot"></div>
+      <span class="sync-txt" id="sync-txt">...</span>
+    </div>
+  </div>
+
+  <div class="tab-content active" id="content-planner">
   <div class="sync-bar">
-    <div class="sync-dot loading" id="sync-dot"></div>
-    <span class="sync-txt" id="sync-txt">Connecting...</span>
     <span class="sync-time" id="sync-time"></span>
     <div class="sync-actions">
       <button class="btn" onclick="document.getElementById('json-imp').click()">📂 Import JSON</button>
       <input type="file" id="json-imp" accept=".json" style="display:none" onchange="importJSON(event)">
       <button class="btn" onclick="manageCategories()">🎨 Categories</button>
       <button class="btn" onclick="showReview()">📊 Review</button>
-      <button class="btn" onclick="exportICS()" title="Download .ics file to import into Outlook / Apple Calendar">📅 Export .ics</button>
+      <button class="btn" onclick="exportICS()">📅 .ics</button>
     </div>
   </div>
 
@@ -425,13 +469,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-header" onclick="togglePanel('mind')">
-      <span class="panel-title">🧠 Mind reclamation tracker</span>
-      <span class="panel-chevron" id="chevron-mind">▼</span>
-    </div>
-    <div class="panel-body" id="body-mind">
+  </div><!-- end planner tab -->
+
+  <!-- Mind tab -->
+  <div class="tab-content" id="content-mind">
+    <div style="padding:10px 0">
       <div class="mind-grid" id="mind-grid"></div>
+    </div>
+  </div>
+
+  <!-- Life tracker tab -->
+  <div class="tab-content" id="content-life">
+    <div class="life-grid">
+      <div id="life-week-nav" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <button class="btn" onclick="chLifeWk(-1)">‹</button>
+        <span id="life-wlbl" style="font-size:13px;font-weight:600;color:var(--text);flex:1;text-align:center"></span>
+        <button class="btn" onclick="chLifeWk(1)">›</button>
+        <button class="btn" onclick="chLifeWk(0)">This week</button>
+      </div>
+      <div id="life-table-wrap"></div>
     </div>
   </div>
 </div>
@@ -484,6 +540,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- Drag ghost -->
 <div class="drag-ghost" id="drag-ghost" style="display:none"></div>
+
+<!-- Undo toast -->
+<div class="undo-toast" id="undo-toast">
+  <span id="undo-label">Action complete</span>
+  <button class="undo-btn" onclick="doUndo()">↩ Undo</button>
+</div>
 
 <!-- Block modal -->
 <div class="mbg" id="mbg" style="display:none" onclick="bgClose(event)">
@@ -1547,7 +1609,12 @@ function editBlk(id){
   const wb=getWeekBlocks();const b=wb.find(x=>x.id===id);if(!b)return;
   editing=b;modalStatus=b.status||'pending';modalRecurDays=[...(b.recurDays||[])];
   const dates=weekDates(weekOffset);
-  const dayOpts=DAYS.map((d,i)=>`<option value="${i}"${b.dayIdx===i?' selected':''}>${d} ${fmtDate(dates[i])}</option>`).join('');
+  // Include current week + next week for rescheduling
+  const nextDates=weekDates(weekOffset+1);
+  const allDates=[...dates,...nextDates];
+  const allDays=[...DAYS.map((d,i)=>({label:`${d} ${fmtDate(dates[i])}`,dayIdx:i,weekOff:0})),
+                 ...DAYS.map((d,i)=>({label:`${d} ${fmtDate(nextDates[i])} (next)`,dayIdx:i,weekOff:1}))];
+  const dayOpts=allDays.map(x=>`<option value="${x.dayIdx}_${x.weekOff}"${b.dayIdx===x.dayIdx&&x.weekOff===0?' selected':''}>${x.label}</option>`).join('');
   document.getElementById('mtitle').textContent='Edit block';
   document.getElementById('mbody').innerHTML=buildForm(b,dayOpts,true);
   document.getElementById('mbg').style.display='flex';
@@ -1615,7 +1682,10 @@ function saveBlk(){
   const wk=weekKey(weekOffset);
   const title=document.getElementById('f-title').value.trim();
   const activity=document.getElementById('f-act').value;
-  const dayIdx=parseInt(document.getElementById('f-day').value);
+  const daySelVal=document.getElementById('f-day').value.split('_');
+  const dayIdx=parseInt(daySelVal[0]);
+  const dayWkOff=parseInt(daySelVal[1]||'0');
+  const saveWk=weekKey(weekOffset+dayWkOff);
   const lockType=document.getElementById('f-lock').value;
   const timeSel=document.getElementById('f-time').value.split('_');
   const hour=parseInt(timeSel[0]),min=parseInt(timeSel[1]);
@@ -1633,7 +1703,7 @@ function saveBlk(){
       // Case 1: block was generated by recurrence expansion — create/update a week-specific override
       const oid=editing.id;
       const ei=state.blocks.findIndex(x=>x.overrideOf===oid);
-      const obj={id:uid(),overrideOf:oid,week:wk,title,activity,dayIdx,lockType,hour,min,duration,secondaryActivity,secondary,notes,recur:'none',recurDays:[],status:modalStatus,actualHours,projectId};
+      const obj={id:uid(),overrideOf:oid,week:saveWk,title,activity,dayIdx,lockType,hour,min,duration,secondaryActivity,secondary,notes,recur:'none',recurDays:[],status:modalStatus,actualHours,projectId};
       if(ei>=0)state.blocks[ei]=obj;else state.blocks.push(obj);
     }else{
       const idx=state.blocks.findIndex(x=>x.id===editing.id);
@@ -1656,6 +1726,7 @@ function saveBlk(){
     state.blocks.push({id:uid(),week:wk,title,activity,dayIdx,lockType,hour,min,duration,secondaryActivity,secondary,notes,recur,recurDays:[...modalRecurDays],status:'pending',actualHours:null,projectId});
   }
   sched();closeModal();render();
+  showUndoToast('Block saved');
 }
 
 function deleteBlk(){
@@ -2194,17 +2265,34 @@ function openInbox(){
   fetchBookings().then(renderInbox);
 }
 
+function parseAlternatives(r){
+  try{const n=JSON.parse(r.notes||'{}');return[n.secondary,n.tertiary].filter(Boolean);}catch(e){return[];}
+}
+
 function renderInbox(){
   const el=document.getElementById('inbox-body');if(!el)return;
   if(!bookingRequests.length){
     el.innerHTML='<div class="inbox-empty">No booking requests yet.<br><br>Share your availability page so people can request meetings.</div>';
     return;
   }
+  const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
   el.innerHTML=bookingRequests.map(r=>{
     const dt=new Date(r.requested_date+'T00:00:00');
     const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
-    const timeStr=`${r.requested_hour}:${r.requested_min===0?'00':'30'}`;
+    const timeStr=`${r.requested_hour}:${(r.requested_min||0)===0?'00':'30'}`;
     const durStr=r.duration_mins>=60?`${r.duration_mins/60}h`:`${r.duration_mins}min`;
+    const alts=parseAlternatives(r);
+    const isAdded=processed.includes(r.id);
+    const altHtml=alts.length&&(r.status==='pending'||r.status==='approved')?`
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Alternative slots:</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">
+        ${alts.map((a,i)=>{
+          const ad=new Date(a.date+'T00:00:00');
+          const als=ad.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'});
+          const atm=`${a.hour}:${(a.min||0)===0?'00':'30'}`;
+          return`<button class="req-act-btn" style="font-size:10px" onclick="approveBooking('${r.id}','${a.date}',${a.hour},${a.min||0},${r.duration_mins||60},'${esc(r.name)}',true)">${als} ${atm}</button>`;
+        }).join('')}
+      </div>`:'';
     return`<div class="req-card">
       <div class="req-card-head">
         <span class="req-name">${esc(r.name)}</span>
@@ -2213,35 +2301,40 @@ function renderInbox(){
       <div class="req-time">📅 ${dayStr} at ${timeStr} · ${durStr}</div>
       <div class="req-email">✉ ${esc(r.email)}</div>
       ${r.reason?`<div class="req-reason">"${esc(r.reason)}"</div>`:''}
-      ${(r.status==='pending'||r.status==='approved')?`<div class="req-actions">
-        <button class="req-act-btn approve" onclick="approveBooking('${r.id}','${r.requested_date}',${r.requested_hour},${r.requested_min||0},${r.duration_mins||60},'${esc(r.name)}')">✓ ${r.status==='approved'?'Add to calendar':'Approve'}</button>
-        <button class="req-act-btn decline" onclick="declineBooking('${r.id}','${esc(r.email)}','${esc(r.name)}')">✕ Decline</button>
-      </div>`:`<div style="font-size:10px;color:var(--danger-b)">✕ Declined</div>`}
+      ${altHtml}
+      ${isAdded?`<div style="font-size:10px;color:var(--success)">✓ Added to calendar</div>`:
+        (r.status==='pending'||r.status==='approved')?`<div class="req-actions">
+          <button class="req-act-btn approve" onclick="approveBooking('${r.id}','${r.requested_date}',${r.requested_hour},${r.requested_min||0},${r.duration_mins||60},'${esc(r.name)}',false)">✓ Add to calendar</button>
+          <button class="req-act-btn decline" onclick="declineBooking('${r.id}','${esc(r.email)}','${esc(r.name)}')">✕ Decline</button>
+        </div>`:`<div style="font-size:10px;color:var(--danger-b)">✕ Declined</div>`}
     </div>`;
   }).join('');
 }
 
-function approveBooking(id,date,hour,min,durMins,name){
-  // Show category picker before confirming
+function approveBooking(id,date,hour,min,durMins,name,isAlternative){
   const ao=allActs().map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
   const dt=new Date(date+'T00:00:00');
   const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
-  document.getElementById('m2title').textContent='Approve booking';
+  // Find email for confirmation
+  const req=bookingRequests.find(r=>r.id===id);
+  const email=req?req.email:'';
+  document.getElementById('m2title').textContent='Add to calendar';
   document.getElementById('m2body').innerHTML=`
     <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
-      <strong>${esc(name)}</strong> — ${dayStr} at ${hour}:${min===0?'00':'30'} (${durMins>=60?durMins/60+'h':durMins+'min'})
+      <strong>${esc(name)}</strong> — ${dayStr} at ${hour}:${(min||0)===0?'00':'30'} (${durMins>=60?durMins/60+'h':durMins+'min'})
+      ${isAlternative?'<span style="font-size:10px;color:var(--info)"> (alternative slot)</span>':''}
     </div>
     <div class="frow"><label>Block title</label><input id="ap-title" value="Meeting: ${esc(name)}"></div>
     <div class="frow"><label>Category</label><select id="ap-act">${ao}</select></div>
     <div class="frow"><label>Notes</label><input id="ap-notes" placeholder="Optional notes"></div>
     <div class="mactions">
-      <button class="btn btn-p" onclick="confirmApprove('${id}','${date}',${hour},${min},${durMins})">Approve & add to calendar</button>
+      <button class="btn btn-p" onclick="confirmApprove('${id}','${date}',${hour},${min||0},${durMins},'${esc(email)}','${esc(name)}',${isAlternative||false})">Add to calendar</button>
       <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
     </div>`;
   document.getElementById('mbg2').style.display='flex';
 }
 
-async function confirmApprove(id,date,hour,min,durMins){
+async function confirmApprove(id,date,hour,min,durMins,email,name,isAlternative){
   const title=document.getElementById('ap-title').value.trim()||'Meeting';
   const activity=document.getElementById('ap-act').value;
   const notes=document.getElementById('ap-notes').value.trim();
@@ -2250,12 +2343,16 @@ async function confirmApprove(id,date,hour,min,durMins){
   const dayIdx=day===0?6:day-1;
   const wk=weekKeyForDate(dt);
   state.blocks.push({
-    id:uid(),week:wk,title,activity,dayIdx,
-    hour:parseInt(hour),min:parseInt(min),
+    id:'bk_'+id,week:wk,title,activity,dayIdx,
+    hour:parseInt(hour),min:parseInt(min||0),
     duration:durMins/60,lockType:'fixed',
     secondaryActivity:null,secondary:'',notes,
     recur:'none',recurDays:[],status:'pending',actualHours:null
   });
+  // Mark as processed so it shows "Added to calendar"
+  const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
+  if(!processed.includes(id))processed.push(id);
+  localStorage.setItem('processed_bookings',JSON.stringify(processed));
   sched();render();
   document.getElementById('mbg2').style.display='none';
   await fetch(SB_BOOK+'/rest/v1/booking_requests?id=eq.'+id,{
@@ -2263,7 +2360,16 @@ async function confirmApprove(id,date,hour,min,durMins){
     body:JSON.stringify({status:'approved'})
   });
   await fetchBookings();renderInbox();
-  showToast('Booking approved and added to your calendar');
+  showToast('Added to calendar');
+  // If alternative slot, send confirmation email
+  if(isAlternative&&email){
+    const dt2=new Date(date+'T00:00:00');
+    const dayStr=dt2.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
+    const timeStr=`${hour}:${(min||0)===0?'00':'30'}`;
+    const subject=encodeURIComponent('Meeting confirmed');
+    const body=encodeURIComponent(`Hi ${name},\n\nGreat news — your meeting request has been confirmed for ${dayStr} at ${timeStr}.\n\nLooking forward to it!\n\nKind regards,\nCorné`);
+    window.location.href='mailto:'+email+'?subject='+subject+'&body='+body;
+  }
 }
 
 async function declineBooking(id,email,name){
@@ -2362,6 +2468,277 @@ function dismissSkipped(id,action){
   }
   sched();render();
   openSkipped(); // refresh panel
+}
+
+// ── Tab system ───────────────────────────────────────────
+let currentTab='planner';
+let lifeWeekOffset=0;
+
+function switchTab(tab){
+  currentTab=tab;
+  ['planner','mind','life'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+    document.getElementById('content-'+t).classList.toggle('active',t===tab);
+  });
+  if(tab==='mind')renderMind(weekDates(weekOffset));
+  if(tab==='life')renderLifeTracker();
+}
+
+function updateTabNotifs(){
+  const today=isoDate(new Date());
+  const mindLogs=state.mindLogs||[];
+  const lifeLog=state.lifeLog||[];
+  const mindToday=mindLogs.filter(l=>l.date===today);
+  const lifeToday=lifeLog.find(l=>l.date===today);
+  const mindDot=document.getElementById('mind-notif');
+  const lifeDot=document.getElementById('life-notif');
+  // Mind: show dot if fewer than 3 activities logged today
+  if(mindDot)mindDot.style.display=mindToday.length<3?'block':'none';
+  // Life: show dot if today not filled
+  if(lifeDot)lifeDot.style.display=(!lifeToday||!lifeToday.mood)?'block':'none';
+}
+
+// ── Life tracker ──────────────────────────────────────────
+const LIFE_ROWS=[
+  {id:'moment',  label:'Moment of day', type:'text',    icon:'✨'},
+  {id:'mood',    label:'Mood',          type:'mood',    icon:'😊'},
+  {id:'sleep',   label:'Sleep (hrs)',   type:'number',  icon:'😴', sparkline:true},
+  {id:'weight',  label:'Weight (kg)',   type:'number',  icon:'⚖️'},
+  {id:'exercise',label:'Exercise',      type:'check',   icon:'🏃'},
+  {id:'prayed',  label:'Prayed',        type:'check',   icon:'🙏'},
+  {id:'bible',   label:'Bible',         type:'check',   icon:'📖'},
+  {id:'screen',  label:'Screen time',   type:'number',  icon:'📱'},
+  {id:'work',    label:'Work hrs',      type:'auto',    icon:'💼'},
+];
+
+function chLifeWk(d){
+  lifeWeekOffset=d===0?0:lifeWeekOffset+d;
+  renderLifeTracker();
+}
+
+function getLifeEntry(date){
+  return(state.lifeLog||[]).find(l=>l.date===date)||{date};
+}
+
+function getWorkHrsForDate(date){
+  // Auto-calculate from done blocks
+  const dt=new Date(date+'T12:00:00');
+  const day=dt.getDay(),di=day===0?6:day-1;
+  const diff=day===0?-6:1-day;
+  const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
+  const wk=isoDate(mon);
+  const blocks=state.blocks.filter(b=>{
+    if(b.status!=='done')return false;
+    if(b.week===wk&&b.dayIdx===di)return true;
+    // Check recurring
+    if(!b.week&&b.recur&&b.recur!=='none'){
+      if(b.recur==='weekly'&&b.dayIdx===di)return true;
+      if(b.recur==='custom'&&b.recurDays&&b.recurDays.includes(di))return true;
+    }
+    return false;
+  });
+  const hrs=blocks.reduce((s,b)=>s+(b.actualHours!=null?b.actualHours:(b.duration||1)),0);
+  return Math.round(hrs*10)/10;
+}
+
+function renderLifeTracker(){
+  const dates=weekDates(lifeWeekOffset);
+  const m=weekMon(lifeWeekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
+  document.getElementById('life-wlbl').textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
+
+  // Sparkline data for sleep
+  const sleepVals=dates.map(d=>parseFloat(getLifeEntry(isoDate(d)).sleep)||null);
+  const maxSleep=Math.max(...sleepVals.filter(v=>v!==null),10);
+
+  let html=`<table class="life-table"><thead><tr>
+    <th class="row-label">Metric</th>
+    ${dates.map((d,i)=>{
+      const dk=isoDate(d);const tod=isToday(d);
+      return`<th style="${tod?'color:var(--info)':''}">${DAYS[i]}<br><span style="font-weight:400;font-size:8px;color:var(--text3)">${fmtDate(d)}</span></th>`;
+    }).join('')}
+  </tr></thead><tbody>`;
+
+  LIFE_ROWS.forEach(row=>{
+    html+=`<tr><td class="row-label">${row.icon} ${row.label}</td>`;
+    dates.forEach((d,di)=>{
+      const dk=isoDate(d);
+      const entry=getLifeEntry(dk);
+      const tod=isToday(d);
+      const val=row.type==='auto'?getWorkHrsForDate(dk):entry[row.id];
+
+      if(row.sparkline){
+        // Sleep sparkline row — show value + mini sparkline dot
+        const cellClass=val?'filled':'empty';
+        html+=`<td><div class="life-cell ${cellClass}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','${row.id}')">${val||'—'}</div></td>`;
+      } else if(row.type==='check'){
+        const cls=val===true?'life-check yes':val===false?'life-check no':'';
+        const lbl=val===true?'✓':val===false?'✕':'—';
+        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="cycleLifeCheck('${dk}','${row.id}')">${lbl}</div></td>`;
+      } else if(row.type==='mood'){
+        const moodLabels={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
+        const cls=val?`life-mood-${val}`:'';
+        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','mood')">${val?moodLabels[val]:'—'}</div></td>`;
+      } else if(row.type==='auto'){
+        html+=`<td><div class="life-cell${val?'':' empty'}${tod?' today-cell':''}" style="cursor:default">${val||'—'}</div></td>`;
+      } else {
+        const cellClass=val?'filled':'empty';
+        const display=row.id==='moment'&&val?'✓':val||'—';
+        html+=`<td><div class="life-cell ${cellClass}${tod?' today-cell':''}" onclick="openLifeEntry('${dk}','${row.id}')">${display}</div></td>`;
+      }
+    });
+    html+=`</tr>`;
+  });
+
+  // Sleep sparkline row
+  html+=`<tr><td class="row-label" style="font-size:9px;color:var(--text3)">Sleep trend</td>`;
+  dates.forEach((d,di)=>{
+    // Draw mini sparkline as inline SVG across the week in last cell
+    if(di===0){
+      const w=dates.length*78;const h=28;const pad=4;
+      const pts=sleepVals.map((v,i)=>v!==null?{x:pad+i*(w-pad*2)/(dates.length-1),y:h-pad-(v/maxSleep*(h-pad*2))}:null);
+      const pathPts=pts.filter(p=>p!==null);
+      let pathD='';
+      pts.forEach((p,i)=>{if(p){pathD+=(pathD?'L':'M')+p.x+' '+p.y;}});
+      const dots=pathPts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="var(--info)"/>`).join('');
+      html+=`<td colspan="${dates.length}" style="padding:4px 8px">
+        <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible">
+          ${pathD?`<path d="${pathD}" fill="none" stroke="var(--info)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`:''}
+          ${dots}
+        </svg>
+      </td>`;
+    }
+  });
+  html+=`</tr></tbody></table>`;
+
+  document.getElementById('life-table-wrap').innerHTML=html;
+  updateTabNotifs();
+}
+
+function cycleLifeCheck(date,field){
+  if(!state.lifeLog)state.lifeLog=[];
+  let entry=state.lifeLog.find(l=>l.date===date);
+  if(!entry){entry={date};state.lifeLog.push(entry);}
+  entry[field]=entry[field]===true?false:entry[field]===false?undefined:true;
+  if(entry[field]===undefined)delete entry[field];
+  sched();renderLifeTracker();
+}
+
+function openLifeEntry(date,focusField){
+  const entry=getLifeEntry(date);
+  const dt=new Date(date+'T00:00:00');
+  const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
+  document.getElementById('m2title').textContent='Log — '+dayStr;
+  document.getElementById('m2body').innerHTML=`
+    <div class="frow"><label>✨ Moment of day</label>
+      <textarea id="le-moment" style="height:60px">${esc(entry.moment||'')}</textarea></div>
+    <div class="frow-2 frow">
+      <div><label>😊 Mood (1-5)</label>
+        <select id="le-mood">
+          <option value="">—</option>
+          ${[1,2,3,4,5].map(n=>`<option value="${n}"${entry.mood==n?' selected':''}>${n} ${{1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'}[n]}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>😴 Sleep (hrs)</label>
+        <input id="le-sleep" type="number" min="0" max="24" step="0.5" value="${entry.sleep||''}"></div>
+    </div>
+    <div class="frow-2 frow">
+      <div><label>⚖️ Weight (kg)</label>
+        <input id="le-weight" type="number" min="0" step="0.1" value="${entry.weight||''}"></div>
+      <div><label>📱 Screen time (hrs)</label>
+        <input id="le-screen" type="number" min="0" step="0.5" value="${entry.screen||''}"></div>
+    </div>
+    <div class="frow"><label>Checkboxes</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        ${['exercise','prayed','bible'].map(f=>{
+          const icons={exercise:'🏃',prayed:'🙏',bible:'📖'};
+          const labels={exercise:'Exercise',prayed:'Prayed',bible:'Bible'};
+          return`<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="le-${f}"${entry[f]?' checked':''}> ${icons[f]} ${labels[f]}
+          </label>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveLifeEntry('${date}')">Save</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+  // Focus the right field
+  setTimeout(()=>{const el=document.getElementById('le-'+focusField);if(el)el.focus();},100);
+}
+
+function saveLifeEntry(date){
+  if(!state.lifeLog)state.lifeLog=[];
+  let entry=state.lifeLog.find(l=>l.date===date);
+  if(!entry){entry={date};state.lifeLog.push(entry);}
+  const get=(id,type='text')=>{
+    const el=document.getElementById(id);if(!el)return undefined;
+    if(type==='check')return el.checked;
+    if(type==='num')return el.value?parseFloat(el.value):undefined;
+    return el.value.trim()||undefined;
+  };
+  entry.moment=get('le-moment');
+  entry.mood=get('le-mood')?parseInt(get('le-mood')):undefined;
+  entry.sleep=get('le-sleep','num');
+  entry.weight=get('le-weight','num');
+  entry.screen=get('le-screen','num');
+  entry.exercise=get('le-exercise','check');
+  entry.prayed=get('le-prayed','check');
+  entry.bible=get('le-bible','check');
+  // Clean undefineds
+  Object.keys(entry).forEach(k=>{if(entry[k]===undefined)delete entry[k];});
+  sched();document.getElementById('mbg2').style.display='none';
+  renderLifeTracker();updateTabNotifs();
+}
+
+// ── Undo system ───────────────────────────────────────────
+let undoSnapshot=null;
+let undoTimer=null;
+
+function saveUndoSnapshot(){
+  undoSnapshot=JSON.stringify(state);
+}
+
+function showUndoToast(msg){
+  const toast=document.getElementById('undo-toast');
+  const label=document.getElementById('undo-label');
+  if(!toast)return;
+  if(label)label.textContent=msg;
+  toast.classList.add('visible');
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(()=>{toast.classList.remove('visible');undoSnapshot=null;},6000);
+}
+
+function doUndo(){
+  if(!undoSnapshot)return;
+  state=JSON.parse(undoSnapshot);
+  undoSnapshot=null;
+  const toast=document.getElementById('undo-toast');
+  if(toast)toast.classList.remove('visible');
+  sched();render();showToast('Undone');
+}
+
+// ── Reschedule fixes ──────────────────────────────────────
+function rescheduleSkipped(id){
+  document.getElementById('skipped-overlay').style.display='none';
+  // Reset status to pending first
+  const wb=getWeekBlocks();
+  const b=wb.find(x=>x.id===id);
+  if(b){
+    if(b.isGenerated){
+      const oid=b.id;
+      const ei=state.blocks.findIndex(x=>x.overrideOf===oid);
+      const obj={id:uid(),overrideOf:oid,week:weekKey(weekOffset),...b,status:'pending',actualHours:null};
+      delete obj.isGenerated;delete obj.originalId;delete obj.isInstance;
+      if(ei>=0)state.blocks[ei]=obj;else state.blocks.push(obj);
+    }else{
+      const idx=state.blocks.findIndex(x=>x.id===id);
+      if(idx>=0)state.blocks[idx].status='pending';
+    }
+  }
+  sched();
+  // Open edit modal — it will show current+next week in day selector
+  editBlk(id);
 }
 
 loadSB();

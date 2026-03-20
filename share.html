@@ -436,7 +436,8 @@ function renderSlots(){
       const tent=tentSlots.has(slotIdx);
       const unavail=tooSoon||busy;
       const isSel=selectedSlot&&selectedSlot.date===dateStr&&selectedSlot.h===h&&selectedSlot.m===m;
-      const type=tent?'tentative':'free';
+      const dt2=new Date(dateStr+'T12:00:00');const isWknd=dt2.getDay()===0||dt2.getDay()===6;
+      const type=(tent||isWknd)?'tentative':'free';
       const lbl=`${h}:${m===0?'00':'30'}${tent?' ~':''}`;
       const title=tooSoon?'Less than 24h notice':busy?'Not available':tent?'Tentative — needs confirmation':'Available';
       chips.push(`<div class="slot-chip${unavail?' unavail':''}${isSel?' selected':''}${tent&&!unavail?' tentative':''}"
@@ -541,7 +542,8 @@ function renderSlotsInto(dateStr,grid,selSlot,slotId){
       const tooSoon=slotDt<=cutoff,busy=busySlots.has(slotIdx),tent=tentSlots.has(slotIdx);
       const unavail=tooSoon||busy;
       const isSel=selSlot&&selSlot.date===dateStr&&selSlot.h===h&&selSlot.m===m;
-      const type=tent?'tentative':'free';
+      const dt2=new Date(dateStr+'T12:00:00');const isWknd=dt2.getDay()===0||dt2.getDay()===6;
+      const type=(tent||isWknd)?'tentative':'free';
       const lbl=`${h}:${m===0?'00':'30'}${tent?' ~':''}`;
       chips+=`<div class="slot-chip${unavail?' unavail':''}${isSel?' selected':''}${tent&&!unavail?' tentative':''}"
         onclick="selectSlotN('${slotId}','${dateStr}',${h},${m},'${type}')">${lbl}</div>`;
@@ -555,11 +557,21 @@ function selectSlotN(slotId,date,h,m,type){
   else if(slotId==='2'){selectedSlot3={date,h,m,type};renderSlots3();}
 }
 function selectSlot(date,h,m,type){
-  selectedSlot={date,h,m,type:type||'free'};
+  const dt=new Date(date+'T12:00:00');
+  const day=dt.getDay();
+  const isWeekend=day===0||day===6;
+  // Weekends always treated as tentative regardless of slot type
+  const effectiveType=isWeekend?'tentative':type||'free';
+  selectedSlot={date,h,m,type:effectiveType};
   renderSlots();
-  // Show tentative notice
   const notice=document.getElementById('tent-notice');
-  if(notice)notice.style.display=(type==='tentative')?'block':'none';
+  if(notice){
+    notice.style.display=(effectiveType==='tentative')?'block':'none';
+    if(isWeekend&&effectiveType==='tentative')
+      notice.textContent='⚠ Weekend slots require confirmation before being finalised.';
+    else
+      notice.textContent='⚠ This slot is tentative — your request will need confirmation before it is finalised.';
+  }
 }
 
 async function submitBooking(){
@@ -593,7 +605,7 @@ async function submitBooking(){
         requested_hour:selectedSlot.h,
         requested_min:selectedSlot.m,
         duration_mins:dur,
-        status:autoConfirm?'approved':'pending',
+        status:'pending',
         notes:JSON.stringify({
           slot_type:selectedSlot.type,
           secondary:slot2?{date:slot2.date,hour:slot2.h,min:slot2.m}:null,
