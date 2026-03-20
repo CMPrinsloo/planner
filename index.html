@@ -140,6 +140,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fab-group{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:50;}
 .fab{width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);}
 .fab-log{background:var(--success);color:#fff;}
+.fab-skipped{background:var(--warn-bg);color:var(--warn);border:.5px solid var(--warn-b);position:relative;}
+.skipped-badge{position:absolute;top:-3px;right:-3px;background:var(--warn);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+
+/* Skipped panel */
+.skipped-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:flex-end;padding:10px;}
+.skipped-panel{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);width:380px;max-width:96vw;max-height:80vh;overflow-y:auto;margin-bottom:70px;}
+.skipped-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid var(--border2);}
+.skipped-title{font-size:13px;font-weight:600;color:var(--text);}
+.skipped-card{padding:10px 14px;border-bottom:.5px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.skipped-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;margin-top:4px;}
+.skipped-info{flex:1;}
+.skipped-name{font-size:12px;font-weight:500;color:var(--text);}
+.skipped-when{font-size:10px;color:var(--text3);margin-top:1px;}
+.skipped-acts{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.skipped-act{padding:3px 8px;font-size:10px;border:.5px solid var(--border2);border-radius:6px;cursor:pointer;background:transparent;color:var(--text2);}
+.skipped-act:hover{background:var(--bg2);}
+.skipped-act.reschedule{color:var(--info);border-color:var(--info-b);}
+.skipped-act.dismiss{color:var(--success);border-color:var(--success-b);}
+.skipped-act.drop{color:var(--danger);border-color:var(--danger-b);}
 .fab-bell{background:var(--bg);color:var(--text);border:.5px solid var(--border2);position:relative;}
 .bell-badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;}
 
@@ -378,9 +397,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="print-head" id="print-head"></div>
 
   <div class="grid-outer">
-    <div class="dl-row" id="dl-row"></div>
-    <div class="load-row" id="load-row"></div>
-    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+    <div class="grid-wrap">
+      <div class="dl-row" id="dl-row"></div>
+      <div class="load-row" id="load-row"></div>
+      <div class="grid" id="grid"></div>
+    </div>
   </div>
 
   <div class="panel">
@@ -419,7 +440,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="fab fab-bell" title="Booking requests" onclick="openInbox()" id="bell-btn">
     🔔<span class="bell-badge" id="bell-badge" style="display:none">0</span>
   </button>
+  <button class="fab fab-skipped" title="Skipped / moved events" onclick="openSkipped()" id="skipped-fab" style="display:none">
+    ↷<span class="skipped-badge" id="skipped-badge">0</span>
+  </button>
   <button class="fab fab-log" title="Log unplanned time" onclick="openLogUnplanned()">⏱</button>
+</div>
+
+<!-- Skipped panel -->
+<div class="skipped-overlay" id="skipped-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="skipped-panel">
+    <div class="skipped-header">
+      <span class="skipped-title">↷ Moved / skipped events</span>
+      <span style="cursor:pointer;color:var(--text3);font-size:14px" onclick="document.getElementById('skipped-overlay').style.display='none'">✕</span>
+    </div>
+    <div id="skipped-list"></div>
+  </div>
 </div>
 
 <!-- Inbox overlay -->
@@ -584,11 +619,19 @@ function sched(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveSB(),900);
 
 function cleanRecurringMasterStatus(){
   // Recurring MASTERS (no week field) should never carry status or actualHours
+  // Also fix blocks that have recur set AND a week — they should be treated as
+  // week-specific instances, so strip their recur setting to avoid confusion
   let changed=false;
   state.blocks.forEach(b=>{
-    if(b.recur&&b.recur!=='none'&&!b.week){
-      if(b.status!==undefined||b.actualHours!==undefined){
-        delete b.status;delete b.actualHours;changed=true;
+    if(b.recur&&b.recur!=='none'){
+      if(!b.week){
+        // True master — strip status
+        if(b.status!==undefined||b.actualHours!==undefined){
+          delete b.status;delete b.actualHours;changed=true;
+        }
+      } else if(b.week&&b.overrideOf){
+        // Override/instance — recur should be 'none'
+        if(b.recur!=='none'){b.recur='none';b.recurDays=[];changed=true;}
       }
     }
   });
@@ -667,7 +710,7 @@ function render(){
   const m=weekMon(weekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
   document.getElementById('wlbl').textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
   document.getElementById('print-head').textContent='Week plan: '+fmtDate(m)+' – '+fmtDate(sun);
-  renderStats(dates);renderDayBars(dates);renderLegend();
+  renderStats(dates);renderDayBars(dates);renderLegend();updateSkippedBadge();
   renderDeadlines(dates);renderLoadRow(dates);renderGrid(dates);
   renderTodos(dates);renderProjects();renderMind(dates);
 }
@@ -1727,27 +1770,55 @@ let clipboard=null,pasteMode=false;
 let ctxTarget=null;
 
 function startDrag(e,id){
-  const startX=e.touches?e.touches[0].clientX:e.clientX;
-  const startY=e.touches?e.touches[0].clientY:e.clientY;
-  const THRESHOLD=6;
+  const isTouch=!!e.touches;
+  const startX=isTouch?e.touches[0].clientX:e.clientX;
+  const startY=isTouch?e.touches[0].clientY:e.clientY;
+  const MOVE_THRESHOLD=6;
+  const HOLD_DELAY=500; // ms hold required on touch before drag activates
   let committed=false;
+  let holdTimer=null;
+  let holdReady=!isTouch; // mouse: ready immediately; touch: wait for hold
+
+  // Touch: start hold timer, add visual feedback
+  if(isTouch){
+    const el=document.getElementById('blk-'+id);
+    holdTimer=setTimeout(()=>{
+      holdReady=true;
+      if(el)el.style.transform='scale(1.03)';
+    },HOLD_DELAY);
+  }
+
+  function commitDrag(x,y){
+    if(committed)return;
+    const wb=getWeekBlocks();
+    const b=wb.find(q=>q.id===id);if(!b){cleanup();return;}
+    if(b.lockType==='fixed'){
+      if(!confirm("This is a fixed block. Move this week's instance anyway?")){cleanup();return;}
+    }
+    committed=true;dragging=b;
+    const el=document.getElementById('blk-'+id);
+    if(el){el.classList.add('dragging');el.style.transform='';}
+    const ghost=document.getElementById('drag-ghost');
+    ghost.style.background=getActColor(b.activity);
+    ghost.textContent=b.title||getActLabel(b.activity);
+    ghost.style.display='block';
+    moveDragGhost(x,y);
+  }
+
   function onMove(ev){
     const x=ev.touches?ev.touches[0].clientX:ev.clientX;
     const y=ev.touches?ev.touches[0].clientY:ev.clientY;
     if(!committed){
-      if(Math.abs(x-startX)<THRESHOLD&&Math.abs(y-startY)<THRESHOLD)return;
-      const wb=getWeekBlocks();
-      const b=wb.find(q=>q.id===id);if(!b){cleanup();return;}
-      if(b.lockType==='fixed'){
-        if(!confirm("This is a fixed block. Move this week's instance anyway?")){cleanup();return;}
+      // If touch moved too much before hold ready, cancel the hold
+      if(isTouch&&!holdReady){
+        if(Math.abs(x-startX)>10||Math.abs(y-startY)>10){
+          cleanup();return; // scroll, not drag
+        }
+        return;
       }
-      committed=true;dragging=b;
-      const el=document.getElementById('blk-'+id);
-      if(el)el.classList.add('dragging');
-      const ghost=document.getElementById('drag-ghost');
-      ghost.style.background=getActColor(b.activity);
-      ghost.textContent=b.title||getActLabel(b.activity);
-      ghost.style.display='block';
+      if(!holdReady)return;
+      if(Math.abs(x-startX)<MOVE_THRESHOLD&&Math.abs(y-startY)<MOVE_THRESHOLD)return;
+      commitDrag(x,y);
     }
     ev.preventDefault();
     moveDragGhost(x,y);
@@ -1777,6 +1848,9 @@ function startDrag(e,id){
     dragging=null;
   }
   function cleanup(){
+    if(holdTimer)clearTimeout(holdTimer);
+    const el=document.getElementById('blk-'+id);
+    if(el)el.style.transform='';
     document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);
     document.removeEventListener('touchmove',onMove);document.removeEventListener('touchend',onUp);
   }
@@ -2096,17 +2170,26 @@ async function fetchBookings(){
     const r=await fetch(SB_BOOK+'/rest/v1/booking_requests?order=created_at.desc&limit=50',{headers:SB_BH});
     if(!r.ok)return;
     bookingRequests=await r.json();
-    const pending=bookingRequests.filter(x=>x.status==='pending').length;
+
+    // Show bell for ALL unresolved requests (pending + approved-not-yet-added)
+    const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
+    const unseen=JSON.parse(localStorage.getItem('seen_bookings')||'[]');
+    const newCount=bookingRequests.filter(x=>!unseen.includes(x.id)||(x.status==='approved'&&!processed.includes(x.id))).length;
     const badge=document.getElementById('bell-badge');
     if(badge){
-      badge.textContent=pending;
-      badge.style.display=pending>0?'flex':'none';
+      badge.textContent=newCount;
+      badge.style.display=newCount>0?'flex':'none';
     }
   }catch(e){}
 }
 
 function openInbox(){
   document.getElementById('inbox-overlay').style.display='flex';
+  // Mark all current requests as seen
+  const seen=bookingRequests.map(x=>x.id);
+  localStorage.setItem('seen_bookings',JSON.stringify(seen));
+  const badge=document.getElementById('bell-badge');
+  if(badge)badge.style.display='none';
   renderInbox();
   fetchBookings().then(renderInbox);
 }
@@ -2130,10 +2213,10 @@ function renderInbox(){
       <div class="req-time">📅 ${dayStr} at ${timeStr} · ${durStr}</div>
       <div class="req-email">✉ ${esc(r.email)}</div>
       ${r.reason?`<div class="req-reason">"${esc(r.reason)}"</div>`:''}
-      ${r.status==='pending'?`<div class="req-actions">
-        <button class="req-act-btn approve" onclick="approveBooking('${r.id}','${r.requested_date}',${r.requested_hour},${r.requested_min},${r.duration_mins},'${esc(r.name)}')">✓ Approve</button>
-        <button class="req-act-btn decline" onclick="declineBooking('${r.id}')">✕ Decline</button>
-      </div>`:`<div style="font-size:10px;color:var(--text3)">${r.status==='approved'?'Added to your calendar':'Declined'}</div>`}
+      ${(r.status==='pending'||r.status==='approved')?`<div class="req-actions">
+        <button class="req-act-btn approve" onclick="approveBooking('${r.id}','${r.requested_date}',${r.requested_hour},${r.requested_min||0},${r.duration_mins||60},'${esc(r.name)}')">✓ ${r.status==='approved'?'Add to calendar':'Approve'}</button>
+        <button class="req-act-btn decline" onclick="declineBooking('${r.id}','${esc(r.email)}','${esc(r.name)}')">✕ Decline</button>
+      </div>`:`<div style="font-size:10px;color:var(--danger-b)">✕ Declined</div>`}
     </div>`;
   }).join('');
 }
@@ -2183,14 +2266,20 @@ async function confirmApprove(id,date,hour,min,durMins){
   showToast('Booking approved and added to your calendar');
 }
 
-async function declineBooking(id){
-  if(!confirm('Decline this request?'))return;
+async function declineBooking(id,email,name){
+  if(!confirm('Decline this request from '+name+'?'))return;
   await fetch(SB_BOOK+'/rest/v1/booking_requests?id=eq.'+id,{
     method:'PATCH',headers:{...SB_BH,'Prefer':'return=minimal'},
     body:JSON.stringify({status:'declined'})
   });
   await fetchBookings();renderInbox();
   showToast('Request declined');
+  // Open mail app with pre-filled email
+  if(email){
+    const subject=encodeURIComponent('Re: Meeting request');
+    const body=encodeURIComponent('Hi '+name+',\n\nThank you for your meeting request. Unfortunately I am unable to accommodate this request at the requested time.\n\nFeel free to reach out to discuss alternative times.\n\nKind regards,\nCorné');
+    window.location.href='mailto:'+email+'?subject='+subject+'&body='+body;
+  }
 }
 
 function weekKeyForDate(d){
@@ -2201,6 +2290,79 @@ function weekKeyForDate(d){
 
 // Poll for new bookings every 5 minutes
 setInterval(fetchBookings,5*60*1000);
+
+// ── Skipped events panel ─────────────────────────────────
+function updateSkippedBadge(){
+  const wb=getWeekBlocks();
+  const skipped=wb.filter(b=>b.status==='skipped');
+  const fab=document.getElementById('skipped-fab');
+  const badge=document.getElementById('skipped-badge');
+  if(fab){fab.style.display=skipped.length>0?'flex':'none';}
+  if(badge)badge.textContent=skipped.length;
+}
+
+function openSkipped(){
+  const wb=getWeekBlocks();
+  const skipped=wb.filter(b=>b.status==='skipped');
+  const dates=weekDates(weekOffset);
+  const list=document.getElementById('skipped-list');
+  if(!list)return;
+  if(!skipped.length){
+    list.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:12px">No skipped events this week</div>';
+  }else{
+    list.innerHTML=skipped.map(b=>{
+      const col=getActColor(b.activity);
+      const dayStr=DAYS[b.dayIdx]+' '+fmtDate(dates[b.dayIdx]);
+      const timeStr=b.hour+':'+(b.min===0?'00':'30');
+      return`<div class="skipped-card">
+        <div class="skipped-dot"style="background:${col}"></div>
+        <div class="skipped-info">
+          <div class="skipped-name">${esc(b.title||getActLabel(b.activity))}</div>
+          <div class="skipped-when">${dayStr} at ${timeStr} · ${getActLabel(b.activity)}</div>
+          <div class="skipped-acts">
+            <button class="skipped-act reschedule"onclick="rescheduleSkipped('${esc(b.id)}')">↗ Reschedule</button>
+            <button class="skipped-act dismiss"onclick="dismissSkipped('${esc(b.id)}','done')">✓ Mark done</button>
+            <button class="skipped-act drop"onclick="dismissSkipped('${esc(b.id)}','drop')">✕ Drop it</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('skipped-overlay').style.display='flex';
+}
+
+function rescheduleSkipped(id){
+  document.getElementById('skipped-overlay').style.display='none';
+  editBlk(id); // open edit modal so they can change day/time
+}
+
+function dismissSkipped(id,action){
+  const wb=getWeekBlocks();
+  const b=wb.find(x=>x.id===id);if(!b)return;
+  if(action==='done'){
+    // Mark as done
+    if(b.isGenerated){
+      const oid=b.id;
+      const ei=state.blocks.findIndex(x=>x.overrideOf===oid);
+      const obj={id:uid(),overrideOf:oid,week:weekKey(weekOffset),...b,status:'done'};
+      delete obj.isGenerated;delete obj.originalId;delete obj.isInstance;
+      if(ei>=0)state.blocks[ei]=obj;else state.blocks.push(obj);
+    }else{
+      const idx=state.blocks.findIndex(x=>x.id===id);
+      if(idx>=0)state.blocks[idx].status='done';
+    }
+  }else{
+    // Drop — delete the block entirely for this week
+    if(b.isGenerated){
+      const orig=state.blocks.find(x=>x.id===b.originalId);
+      if(orig){if(!orig.excludeWeeks)orig.excludeWeeks=[];orig.excludeWeeks.push(weekKey(weekOffset));}
+    }else{
+      state.blocks=state.blocks.filter(x=>x.id!==id);
+    }
+  }
+  sched();render();
+  openSkipped(); // refresh panel
+}
 
 loadSB();
 // Update time line every minute

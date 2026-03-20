@@ -15,7 +15,7 @@
   --busy:#c45c10;--busy-bg:#fdf0e6;
   --tent:#7c4dbb;--tent-bg:#f3eefe;
   --free:#2d7a3a;--free-bg:#e8f5ea;
-  --slot-h:20px;--label-w:46px;--col-w:110px;
+  --slot-h:20px;--label-w:46px;--col-w:108px;
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#242422;--bg3:#2e2e2c;
@@ -98,7 +98,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="app">
   <div class="header">
     <h1>Corné's availability</h1>
-    <p>Fixed commitments show as Busy. Flexible blocks show as available. Click a week to browse.</p>
+    <p>Fixed commitments show as Busy. Flexible blocks show as available. Use ‹ › to browse weeks and find a suitable time.</p>
   </div>
 
   <div class="week-nav">
@@ -120,7 +120,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="grid-outer">
-    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+    <div class="grid-wrap">
+      <div class="grid-wrap-inner">
+        <div class="dl-row" id="dl-row"></div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
   </div>
 
   <div class="day-summary" id="day-summary"></div>
@@ -321,8 +326,7 @@ function renderBookingStep1(preDate,preH,preM){
   const dates=[];
   for(let i=0;i<=14;i++){
     const d=new Date(now);d.setDate(now.getDate()+i);d.setHours(0,0,0,0);
-    // Include this date if at least one slot on it is after cutoff
-    const dayEnd=new Date(d);dayEnd.setHours(20,0,0,0);
+    const dayEnd=new Date(d);dayEnd.setHours(20,30,0,0);
     if(dayEnd>cutoff)dates.push(d);
   }
   const dayOpts=dates.map(d=>{
