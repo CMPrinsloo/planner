@@ -704,7 +704,12 @@ function allActs(){
 }
 function getAct(id){return allActs().find(a=>a.id===id)||{color:'#888',label:'Other',id:'other',countsAsWork:true};}
 function getActColor(id){return getAct(id).color;}
-function getActLabel(id){return getAct(id).label;}
+function getActLabel(id){
+  // Check label overrides first
+  if(state.activityLabelOverrides&&state.activityLabelOverrides[id])
+    return state.activityLabelOverrides[id];
+  return getAct(id).label;
+}
 function isWork(id){return getAct(id).countsAsWork!==false;}
 
 // ── Supabase ──────────────────────────────────────────────
@@ -723,7 +728,7 @@ async function loadSB(){
         projects:d.projects||[],customActivities:d.customActivities||[],
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
-        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],
+        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},
         customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
@@ -1081,7 +1086,7 @@ function renderProjects(){
     const fmtDl=d=>{if(!d)return'';const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});};
     const deadlineStr=p.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">due ${fmtDl(p.deadline)}</span>`:'';
     const ms=(p.milestones||[]).map((m,mi)=>{
-      const mDeadline=m.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${fmtDl(m.deadline)}</span>`:'';
+      const mDeadline=m.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">📅 ${fmtDl(m.deadline)}${m.deadlineTime?' '+m.deadlineTime:''}</span>`:'';
       const msLen=(p.milestones||[]).length;
       return`<div class="ms-item">
         <div class="ms-row${m.done?' done-m':''}">
@@ -1093,6 +1098,12 @@ function renderProjects(){
           <span style="flex:1;cursor:text"ondblclick="editMsText(this,'${p.id}',${mi})">${esc(m.text)}</span>
           ${mDeadline}
           <span class="ms-del"onclick="deleteMs('${p.id}',${mi})">✕</span>
+          <input type="date" style="font-size:8px;border:none;background:transparent;color:var(--text3);width:90px;cursor:pointer"
+            value="${m.deadline||''}" title="Set milestone deadline"
+            onchange="setMsDeadline('${p.id}',${mi},this.value)">
+          ${m.deadline?`<input type="time" style="font-size:8px;border:none;background:transparent;color:var(--text3);width:70px"
+            value="${m.deadlineTime||''}" title="Set time"
+            onchange="setMsDeadlineTime('${p.id}',${mi},this.value)">`:''}
         </div>
         <div class="subtasks">${(m.subtasks||[]).map((s,si)=>`
           <div class="st-row${s.done?' done-s':''}">
@@ -1303,18 +1314,23 @@ function editProject(id){
   document.getElementById('mbg2').style.display='flex';
 }
 function syncProjectDeadlinesToBar(){
-  // Remove all project-sourced deadlines
   state.deadlines=(state.deadlines||[]).filter(dl=>!dl.fromProject);
-  // Re-add from current projects
   (state.projects||[]).forEach(p=>{
-    if(!p.deadline)return;
-    state.deadlines.push({
-      id:'proj_'+p.id,
-      date:p.deadline,
-      title:p.name+' due',
-      activity:p.activityId||'other',
-      time:null,
-      fromProject:true
+    if(p.deadline){
+      state.deadlines.push({id:'proj_'+p.id,date:p.deadline,title:p.name+' due',
+        activity:p.activityId||'other',time:null,fromProject:true});
+    }
+    // Milestone deadlines
+    (p.milestones||[]).forEach((m,mi)=>{
+      if(!m.deadline)return;
+      state.deadlines.push({
+        id:'ms_'+p.id+'_'+mi,
+        date:m.deadline,
+        title:p.name+': '+m.text,
+        activity:p.activityId||'other',
+        time:m.deadlineTime||null,
+        fromProject:true
+      });
     });
   });
 }
@@ -1363,7 +1379,14 @@ function addMs(pid,input){
 }
 function setMsDeadline(pid,mi,val){
   const p=state.projects.find(x=>x.id===pid);if(!p)return;
-  p.milestones[mi].deadline=val||null;sched();
+  p.milestones[mi].deadline=val||null;
+  if(!val)delete p.milestones[mi].deadlineTime;
+  syncProjectDeadlinesToBar();sched();renderProjects();
+}
+function setMsDeadlineTime(pid,mi,val){
+  const p=state.projects.find(x=>x.id===pid);if(!p)return;
+  p.milestones[mi].deadlineTime=val||null;
+  syncProjectDeadlinesToBar();sched();
 }
 function toggleMs(pid,mi){
   const p=state.projects.find(x=>x.id===pid);if(!p)return;
@@ -1567,7 +1590,7 @@ function renderCatModal(){
         <span class="cat-action"style="padding:0 3px;font-size:10px;line-height:1"onclick="moveCat('${a.id}',1)">▼</span>
       </div>
       <div class="cat-dot"style="background:${a.color}"></div>
-      <div class="cat-name">${esc(a.label)}</div>
+      <div class="cat-name" ondblclick="renameCat('${a.id}',this)" title="Double-click to rename" style="cursor:text">${esc(a.label)}</div>
       <span class="cat-badge ${caw?'work':'nonwork'}">${caw?'work':'non-work'}</span>
       ${isCustom
         ?`<div class="cat-action"onclick="editCat('${a.id}')">✎</div><div class="cat-action"onclick="deleteCat('${a.id}')">✕</div>`
@@ -1593,6 +1616,30 @@ function renderCatModal(){
       <button class="btn btn-p"onclick="addCat()">Add</button>
       <button class="btn"onclick="document.getElementById('mbg2').style.display='none'">Close</button>
     </div>`;
+}
+function renameCat(id,el){
+  const current=el.textContent.trim();
+  const input=document.createElement('input');
+  input.value=current;
+  input.style.cssText='flex:1;font-size:12px;border:none;border-bottom:1px solid var(--info);background:transparent;color:var(--text);outline:none;min-width:0;';
+  el.replaceWith(input);input.focus();input.select();
+  function save(){
+    const val=input.value.trim();
+    if(val&&val!==current){
+      // Check if custom
+      const custom=state.customActivities||[];
+      const ca=custom.find(x=>x.id===id);
+      if(ca){ca.label=val;}
+      else{
+        if(!state.activityLabelOverrides)state.activityLabelOverrides={};
+        state.activityLabelOverrides[id]=val;
+      }
+      sched();
+    }
+    manageCategories();
+  }
+  input.onblur=save;
+  input.onkeydown=e=>{if(e.key==='Enter')input.blur();if(e.key==='Escape')manageCategories();};
 }
 function toggleWorkDefault(id,currentWork){
   if(!state.activityOverrides)state.activityOverrides={};
@@ -1720,7 +1767,10 @@ function openAdd(di,h,m){
 }
 function editBlk(id){
   selectedBlkId=id;
-  const wb=getWeekBlocks();const b=wb.find(x=>x.id===id);if(!b)return;
+  const wb=getWeekBlocks();let b=wb.find(x=>x.id===id);if(!b)return;
+  // Re-read hour/min/duration from state in case a drag just updated them
+  const raw=state.blocks.find(x=>x.id===id||(x.overrideOf&&x.id===id));
+  if(raw&&raw.hour!=null)b={...b,hour:raw.hour,min:raw.min||0,duration:raw.duration||b.duration};
   editing=b;modalStatus=b.status||'pending';modalRecurDays=[...(b.recurDays||[])];
   const dates=weekDates(weekOffset);
   // Include current week + next week for rescheduling
@@ -2970,6 +3020,249 @@ function rescheduleSkipped(id){
   sched();
   // Open edit modal — it will show current+next week in day selector
   editBlk(id);
+}
+
+// ── Fitness tracker ──────────────────────────────────────
+let fitWeekOffset=0;
+
+const GYM_PRESETS=['Squat','Bench Press','Deadlift','Overhead Press','Barbell Row','Pull-up','Dip','Incline Bench','Romanian Deadlift','Leg Press','Lat Pulldown','Seated Row','Bicep Curl','Tricep Pushdown','Leg Curl','Leg Extension','Calf Raise','Hip Thrust','Face Pull','Arnold Press','Chest Fly','Lateral Raise','Front Raise'];
+const CARDIO_PRESETS=['Treadmill','Rowing Machine','Stairmaster','Elliptical','Assault Bike','Jump Rope','Box Jumps','Burpees','Cycling (indoor)'];
+
+function chFitWk(d){fitWeekOffset=d===0?0:fitWeekOffset+d;renderFitness();}
+
+function renderFitness(){
+  const dates=weekDates(fitWeekOffset);
+  const m=weekMon(fitWeekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
+  const lbl=document.getElementById('fit-week-lbl');
+  if(lbl)lbl.textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
+  const wkSet=new Set(dates.map(d=>isoDate(d)));
+  const sessions=(state.fitSessions||[]).filter(s=>wkSet.has(s.date)).sort((a,b)=>a.date.localeCompare(b.date));
+  const gymS=sessions.filter(s=>s.type==='gym');
+  const cycleS=sessions.filter(s=>s.type==='cycling');
+  const totalVol=gymS.reduce((sum,s)=>{
+    return sum+(s.exercises||[]).reduce((es,ex)=>{
+      if(ex.isCardio)return es;
+      return es+(ex.sets||[]).reduce((ss,set)=>ss+(parseFloat(set.reps||0)*parseFloat(set.weight||0)),0);
+    },0);
+  },0);
+  const totalDist=cycleS.reduce((sum,s)=>sum+(parseFloat(s.distance)||0),0);
+  const volEl=document.getElementById('fit-volume');
+  if(volEl)volEl.innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Week summary</div>
+    <div class="fit-volume-card">
+      <div class="fit-vol-stat"><div class="fit-vol-num">${Math.round(totalVol).toLocaleString()}</div><div class="fit-vol-lbl">kg lifted</div></div>
+      <div class="fit-vol-stat"><div class="fit-vol-num">${totalDist.toFixed(1)}</div><div class="fit-vol-lbl">km cycled</div></div>
+      <div class="fit-vol-stat"><div class="fit-vol-num">${sessions.length}</div><div class="fit-vol-lbl">sessions</div></div>
+    </div>`;
+  const sessEl=document.getElementById('fit-sessions');if(!sessEl)return;
+  if(!sessions.length){sessEl.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px">No sessions this week.<br>Add a gym or cycling session above.</div>';return;}
+  const prs=state.fitPRs||{};
+  sessEl.innerHTML=sessions.map((s,si)=>{
+    const dt=new Date(s.date+'T12:00:00');
+    const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'});
+    const icon=s.type==='gym'?'🏋️':'🚴';
+    let meta='',body='';
+    if(s.type==='gym'){
+      const vol=(s.exercises||[]).reduce((sum,ex)=>ex.isCardio?sum:sum+(ex.sets||[]).reduce((ss,set)=>ss+(parseFloat(set.reps||0)*parseFloat(set.weight||0)),0),0);
+      meta=`${(s.exercises||[]).filter(e=>!e.isCardio).length} exercises · ${Math.round(vol).toLocaleString()} kg`;
+      const cardioItems=(s.exercises||[]).filter(e=>e.isCardio);
+      if(cardioItems.length)meta+=` · ${cardioItems.length} cardio`;
+      body=(s.exercises||[]).map(ex=>{
+        if(ex.isCardio){
+          return`<div class="fit-exercise"><div class="fit-ex-name">🏃 ${esc(ex.name)}</div><div class="fit-ex-sets">${ex.duration||'?'}min${ex.distance?' · '+ex.distance+'km':''}</div></div>`;
+        }
+        const setsStr=(ex.sets||[]).map(set=>`${set.reps}×${set.weight}kg`).join(', ');
+        const maxW=Math.max(...(ex.sets||[]).map(s=>parseFloat(s.weight)||0));
+        const isPR=prs[ex.name]&&maxW>=prs[ex.name]&&maxW>0;
+        return`<div class="fit-exercise"><div class="fit-ex-name">${esc(ex.name)}${isPR?' <span class="fit-pr-badge">🏆 PR</span>':''}</div><div class="fit-ex-sets">${setsStr||'—'}</div></div>`;
+      }).join('');
+    }else{
+      meta=`${s.distance||'?'}km · ${s.duration||'?'}min${s.elevation?' · '+s.elevation+'m':''}${s.route?' · '+esc(s.route):''}`;
+      body=s.notes?`<div style="font-size:11px;color:var(--text2);padding:6px 0">${esc(s.notes)}</div>`:'';
+    }
+    const sid=s.id;
+    return`<div class="fit-session">
+      <div class="fit-session-head" onclick="toggleFitSession('fit-body-${sid}')">
+        <div class="fit-session-type">${icon}</div>
+        <div class="fit-session-info"><div class="fit-session-title">${s.type==='gym'?'Gym':'Cycling'} — ${dayStr}</div><div class="fit-session-meta">${meta}</div></div>
+        <span class="fit-session-del" onclick="event.stopPropagation();deleteFitSession('${sid}')">🗑</span>
+      </div>
+      <div class="fit-session-body" id="fit-body-${sid}" style="display:none">${body}
+        <button class="btn" style="margin-top:8px;font-size:11px" onclick="editFitSession('${sid}')">✎ Edit</button>
+      </div></div>`;
+  }).join('');
+}
+
+function toggleFitSession(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+function deleteFitSession(id){if(!confirm('Delete?'))return;saveUndoSnapshot();state.fitSessions=(state.fitSessions||[]).filter(s=>s.id!==id);sched();renderFitness();}
+
+let modalExercises=[];
+
+function openAddSession(type){modalExercises=[{name:'',sets:[{reps:'',weight:''}],isCardio:false}];renderSessionModal(type,null);document.getElementById('mbg2').style.display='flex';}
+function editFitSession(id){
+  const s=(state.fitSessions||[]).find(x=>x.id===id);if(!s)return;
+  modalExercises=s.type==='gym'?(s.exercises||[]).map(ex=>({...ex,sets:(ex.sets||[]).map(s=>({...s}))})):[];
+  renderSessionModal(s.type,s);document.getElementById('mbg2').style.display='flex';
+}
+
+function renderSessionModal(type,existing){
+  document.getElementById('m2title').textContent=(existing?'Edit ':'Log ')+(type==='gym'?'Gym session 🏋️':'Cycling 🚴');
+  const today=isoDate(new Date());
+  if(type==='gym'){
+    document.getElementById('m2body').innerHTML=`
+      <div class="frow"><label>Date</label><input type="date" id="fs-date" value="${existing?.date||today}"></div>
+      <div class="frow"><label>Notes</label><input id="fs-notes" value="${esc(existing?.notes||'')}"></div>
+      <div id="fs-exercises">${modalExercises.map((ex,ei)=>renderExRow(ex,ei)).join('')}</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn" style="flex:1" onclick="addExRow(false)">+ Strength exercise</button>
+        <button class="btn" style="flex:1" onclick="addExRow(true)">+ Cardio</button>
+      </div>
+      <div class="mactions">
+        <button class="btn btn-p" onclick="saveFitSession('${existing?.id||''}','gym')">Save</button>
+        <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+      </div>`;
+  }else{
+    document.getElementById('m2body').innerHTML=`
+      <div class="frow"><label>Date</label><input type="date" id="fs-date" value="${existing?.date||today}"></div>
+      <div class="frow-2 frow">
+        <div><label>Distance (km)</label><input id="fs-dist" type="number" step="0.1" min="0" value="${existing?.distance||''}"></div>
+        <div><label>Duration (min)</label><input id="fs-dur" type="number" step="1" min="0" value="${existing?.duration||''}"></div>
+      </div>
+      <div class="frow-2 frow">
+        <div><label>Elevation (m)</label><input id="fs-elev" type="number" step="1" min="0" value="${existing?.elevation||''}"></div>
+        <div><label>Avg power (W)</label><input id="fs-power" type="number" step="1" min="0" value="${existing?.avgPower||''}"></div>
+      </div>
+      <div class="frow-2 frow">
+        <div><label>Avg HR (bpm)</label><input id="fs-hr" type="number" step="1" min="0" value="${existing?.avgHR||''}"></div>
+        <div><label>Route name</label><input id="fs-route" value="${esc(existing?.route||'')}"></div>
+      </div>
+      <div class="frow"><label>Notes</label><textarea id="fs-notes" style="height:50px">${esc(existing?.notes||'')}</textarea></div>
+      <div class="mactions">
+        <button class="btn btn-p" onclick="saveFitSession('${existing?.id||''}','cycling')">Save</button>
+        <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+      </div>`;
+  }
+}
+
+function renderExRow(ex,ei){
+  const allPresets=[...GYM_PRESETS,...CARDIO_PRESETS];
+  const presetOpts=allPresets.map(p=>`<option value="${p}">`).join('');
+  if(ex.isCardio){
+    return`<div style="background:var(--bg2);border-radius:var(--radius);padding:8px;margin-bottom:6px;border-left:3px solid var(--success)" id="ex-row-${ei}">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px">🏃</span>
+        <input list="gp-${ei}" placeholder="Cardio type" value="${esc(ex.name||'')}" id="ex-name-${ei}"
+          style="flex:1;padding:4px 8px;font-size:12px;border:.5px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text)">
+        <datalist id="gp-${ei}">${presetOpts}</datalist>
+        <span style="font-size:11px;color:var(--text3);cursor:pointer" onclick="removeExRow(${ei})">🗑</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1"><label style="font-size:10px;color:var(--text3)">Duration (min)</label>
+          <input type="number" min="0" step="1" value="${ex.duration||''}" id="ex-dur-${ei}"
+            style="width:100%;padding:3px 5px;font-size:11px;border:.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text)"></div>
+        <div style="flex:1"><label style="font-size:10px;color:var(--text3)">Distance (km, optional)</label>
+          <input type="number" min="0" step="0.1" value="${ex.distance||''}" id="ex-cdist-${ei}"
+            style="width:100%;padding:3px 5px;font-size:11px;border:.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text)"></div>
+      </div></div>`;
+  }
+  const setRows=(ex.sets||[{reps:'',weight:''}]).map((s,si)=>`
+    <div style="display:flex;gap:4px;align-items:center;margin-bottom:3px" id="set-${ei}-${si}">
+      <input type="number" min="0" step="1" placeholder="reps" value="${s.reps||''}" id="sr-${ei}-${si}"
+        style="width:52px;padding:3px 5px;font-size:11px;border:.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text)">
+      <span style="font-size:10px;color:var(--text3)">×</span>
+      <input type="number" min="0" step="0.5" placeholder="kg" value="${s.weight||''}" id="sw-${ei}-${si}"
+        style="width:58px;padding:3px 5px;font-size:11px;border:.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text)">
+      <span style="font-size:10px;color:var(--text3)">kg</span>
+      <span style="cursor:pointer;color:var(--text3);font-size:11px" onclick="removeSet(${ei},${si})">✕</span>
+    </div>`).join('');
+  return`<div style="background:var(--bg2);border-radius:var(--radius);padding:8px;margin-bottom:6px" id="ex-row-${ei}">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <input list="gp-${ei}" placeholder="Exercise name" value="${esc(ex.name||'')}" id="ex-name-${ei}"
+        style="flex:1;padding:4px 8px;font-size:12px;border:.5px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text)">
+      <datalist id="gp-${ei}">${presetOpts}</datalist>
+      <span style="cursor:pointer;color:var(--text3);font-size:11px" onclick="removeExRow(${ei})">🗑</span>
+    </div>
+    <div id="ex-sets-${ei}">${setRows}</div>
+    <button class="btn" style="font-size:10px;padding:2px 8px;margin-top:4px" onclick="addSet(${ei})">+ Set</button>
+  </div>`;
+}
+
+function syncExFromDOM(){
+  modalExercises.forEach((ex,ei)=>{
+    const nm=document.getElementById('ex-name-'+ei);if(nm)ex.name=nm.value;
+    if(ex.isCardio){
+      const dur=document.getElementById('ex-dur-'+ei);if(dur)ex.duration=parseFloat(dur.value)||null;
+      const cd=document.getElementById('ex-cdist-'+ei);if(cd)ex.distance=parseFloat(cd.value)||null;
+    }else{
+      (ex.sets||[]).forEach((s,si)=>{
+        const r=document.getElementById('sr-'+ei+'-'+si);if(r)s.reps=r.value;
+        const w=document.getElementById('sw-'+ei+'-'+si);if(w)s.weight=w.value;
+      });
+    }
+  });
+}
+function addExRow(isCardio){syncExFromDOM();modalExercises.push({name:'',isCardio,sets:isCardio?[]:[{reps:'',weight:''}]});refreshExRows();}
+function removeExRow(ei){syncExFromDOM();modalExercises.splice(ei,1);refreshExRows();}
+function addSet(ei){syncExFromDOM();if(!modalExercises[ei].sets)modalExercises[ei].sets=[];modalExercises[ei].sets.push({reps:'',weight:''});refreshExRows();}
+function removeSet(ei,si){syncExFromDOM();modalExercises[ei].sets.splice(si,1);if(!modalExercises[ei].sets.length)modalExercises[ei].sets=[{reps:'',weight:''}];refreshExRows();}
+function refreshExRows(){const wrap=document.getElementById('fs-exercises');if(wrap)wrap.innerHTML=modalExercises.map((ex,ei)=>renderExRow(ex,ei)).join('');}
+
+function saveFitSession(existingId,type){
+  syncExFromDOM();saveUndoSnapshot();
+  if(!state.fitSessions)state.fitSessions=[];
+  const date=document.getElementById('fs-date')?.value;if(!date){alert('Please select a date');return;}
+  let session;
+  if(type==='gym'){
+    const exercises=modalExercises.map(ex=>({...ex,sets:(ex.sets||[]).filter(s=>s.reps||s.weight)})).filter(ex=>ex.name);
+    session={id:existingId||uid(),type:'gym',date,notes:document.getElementById('fs-notes')?.value.trim()||'',exercises};
+    checkAndUpdatePRs(exercises.filter(e=>!e.isCardio));
+  }else{
+    session={id:existingId||uid(),type:'cycling',date,
+      distance:parseFloat(document.getElementById('fs-dist')?.value)||null,
+      duration:parseFloat(document.getElementById('fs-dur')?.value)||null,
+      elevation:parseFloat(document.getElementById('fs-elev')?.value)||null,
+      avgPower:parseFloat(document.getElementById('fs-power')?.value)||null,
+      avgHR:parseFloat(document.getElementById('fs-hr')?.value)||null,
+      route:document.getElementById('fs-route')?.value.trim()||null,
+      notes:document.getElementById('fs-notes')?.value.trim()||''};
+  }
+  if(existingId){const i=state.fitSessions.findIndex(s=>s.id===existingId);if(i>=0)state.fitSessions[i]=session;else state.fitSessions.push(session);}
+  else state.fitSessions.push(session);
+  sched();document.getElementById('mbg2').style.display='none';renderFitness();showToast('Session saved');
+}
+
+function checkAndUpdatePRs(exercises){
+  if(!state.fitPRs)state.fitPRs={};
+  exercises.forEach(ex=>{
+    const maxW=Math.max(...(ex.sets||[]).map(s=>parseFloat(s.weight)||0));
+    if(maxW>0&&(!state.fitPRs[ex.name]||maxW>state.fitPRs[ex.name]))state.fitPRs[ex.name]=maxW;
+  });
+}
+
+function openPRs(){
+  const prs=state.fitPRs||{};const keys=Object.keys(prs).sort();
+  document.getElementById('m2title').textContent='🏆 Personal Records';
+  document.getElementById('m2body').innerHTML=`
+    <div style="margin-bottom:12px;max-height:250px;overflow-y:auto">
+      ${keys.length?keys.map(k=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--border);font-size:12px">
+        <span style="color:var(--text);font-weight:500">${esc(k)}</span>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--text2)">${prs[k]} kg</span>
+        <span style="cursor:pointer;color:var(--text3)" onclick="deletePR('${esc(k)}')">✕</span></div></div>`).join('')
+        :'<div style="color:var(--text3);font-size:11px">No PRs yet — they auto-track from gym sessions.</div>'}
+    </div>
+    <div class="frow"><label>Add manual PR</label>
+      <div style="display:flex;gap:6px"><input id="pr-name" placeholder="Exercise" style="flex:1">
+      <input id="pr-weight" type="number" placeholder="kg" style="width:70px">
+      <button class="btn btn-p" onclick="addManualPR()">Add</button></div></div>
+    <div class="mactions"><button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Close</button></div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+function deletePR(name){if(!state.fitPRs)return;delete state.fitPRs[name];sched();openPRs();}
+function addManualPR(){
+  const name=document.getElementById('pr-name')?.value.trim();
+  const weight=parseFloat(document.getElementById('pr-weight')?.value);
+  if(!name||!weight)return;
+  if(!state.fitPRs)state.fitPRs={};
+  state.fitPRs[name]=weight;sched();openPRs();
 }
 
 loadSB();
