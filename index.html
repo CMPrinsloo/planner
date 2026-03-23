@@ -3040,8 +3040,9 @@ function renderFitness(){
   const dates=weekDates(fitWeekOffset);
   const m=weekMon(fitWeekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
   const lbl=document.getElementById('fit-week-lbl');
-  if(lbl)lbl.textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
-  const wkSet=new Set(dates.map(d=>isoDate(d)));
+  if(!lbl)return; // tab not rendered yet
+  lbl.textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
+  const wkSet=new Set(dates.map(d=>localDateStr(d)));
   const sessions=(state.fitSessions||[]).filter(s=>wkSet.has(s.date)).sort((a,b)=>a.date.localeCompare(b.date));
   const gymS=sessions.filter(s=>s.type==='gym');
   const cycleS=sessions.filter(s=>s.type==='cycling');
