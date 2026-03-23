@@ -94,6 +94,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* Grid outer */
 .grid-outer{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px;}
 .grid-wrap{overflow-x:auto;}
+.col-compact{--col-w:80px!important;}
+.col-comfortable{--col-w:108px;}
+.col-spacious{--col-w:150px!important;}
 .grid{display:grid;grid-template-columns:var(--label-w) repeat(7,var(--col-w));}
 
 /* Deadline row */
@@ -133,6 +136,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .gcell.today-col{background:color-mix(in srgb,var(--info-bg) 22%,var(--bg));}
 .gcell.today-col:hover{background:color-mix(in srgb,var(--info-bg) 38%,var(--bg));}
 .gcell.closed-col{background:color-mix(in srgb,var(--bg3) 55%,var(--bg));opacity:.65;}
+.gcell.away-col{background:repeating-linear-gradient(45deg,rgba(180,120,40,.05) 0px,rgba(180,120,40,.05) 4px,var(--bg) 4px,var(--bg) 8px);}
+.away-banner{position:absolute;top:0;left:0;right:0;background:rgba(180,120,40,.15);font-size:9px;color:rgba(150,100,30,.9);font-weight:600;text-align:center;padding:2px 0;z-index:5;letter-spacing:.04em;}
 
 /* Current time line */
 .time-line{position:absolute;left:0;right:0;height:2px;background:var(--danger);z-index:10;pointer-events:none;}
@@ -273,6 +278,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-proj-btn{padding:10px;text-align:center;cursor:pointer;color:var(--info);font-size:12px;border-top:.5px solid var(--border2);}
 .add-proj-btn:hover{background:var(--bg2);}
 
+/* Fitness tracker */
+.fit-session{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;}
+.fit-session-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;}
+.fit-session-type{font-size:18px;flex-shrink:0;}
+.fit-session-info{flex:1;}
+.fit-session-title{font-size:13px;font-weight:600;color:var(--text);}
+.fit-session-meta{font-size:10px;color:var(--text3);margin-top:1px;}
+.fit-session-del{font-size:11px;color:var(--text3);cursor:pointer;padding:3px 6px;}
+.fit-session-del:hover{color:var(--danger);}
+.fit-session-body{padding:0 12px 10px;border-top:.5px solid var(--border);}
+.fit-exercise{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border);font-size:11px;}
+.fit-ex-name{font-weight:600;color:var(--text);min-width:120px;}
+.fit-ex-sets{color:var(--text2);flex:1;}
+.fit-pr-badge{font-size:9px;background:var(--warn-bg);color:var(--warn);border-radius:4px;padding:1px 5px;font-weight:600;}
+.fit-volume-card{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.fit-vol-stat{background:var(--bg2);border-radius:var(--radius);padding:10px;text-align:center;}
+.fit-vol-num{font-size:18px;font-weight:700;color:var(--text);}
+.fit-vol-lbl{font-size:9px;color:var(--text3);margin-top:2px;}
+
 /* Life tracker */
 .life-grid{overflow-x:auto;padding:10px;}
 .life-table{border-collapse:collapse;font-size:11px;min-width:100%;}
@@ -405,6 +429,7 @@ svg.sparkline{overflow:visible;}
     <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📅 Planner</button>
     <button class="tab-btn" id="tab-mind" onclick="switchTab('mind')">🧠 Mind<span class="tab-notif" id="mind-notif" style="display:none"></span></button>
     <button class="tab-btn" id="tab-life" onclick="switchTab('life')">🌱 Life<span class="tab-notif" id="life-notif" style="display:none"></span></button>
+    <button class="tab-btn" id="tab-fitness" onclick="switchTab('fitness')">💪 Fitness</button>
     <div class="sync-mini">
       <div class="sync-dot loading" id="sync-dot"></div>
       <span class="sync-txt" id="sync-txt">...</span>
@@ -433,6 +458,7 @@ svg.sparkline{overflow:visible;}
     <div class="btn-group">
       <button class="btn btn-p" onclick="openAdd()">+ Add block</button>
       <button class="btn" onclick="copyPrevWeek()" title="Copy all blocks from previous week into this week">⎘ Copy prev week</button>
+      <button class="btn" id="col-toggle-btn" onclick="cycleColWidth()" title="Toggle column width">⊞ Compact</button>
       <button class="btn" onclick="exportXLSX()">Export XLSX</button>
       <button class="btn" onclick="window.print()">Print</button>
     </div>
@@ -537,6 +563,7 @@ svg.sparkline{overflow:visible;}
   <div class="inbox-panel">
     <div class="inbox-header">
       <span class="inbox-title">📬 Booking requests</span>
+      <button class="btn" style="font-size:10px;padding:3px 8px" onclick="clearDeclined()">🗑 Clear declined</button>
       <span class="inbox-close" onclick="document.getElementById('inbox-overlay').style.display='none'">✕</span>
     </div>
     <div id="inbox-body"><div class="inbox-empty">Loading...</div></div>
@@ -558,7 +585,24 @@ svg.sparkline{overflow:visible;}
 </div>
 
 <!-- Drag ghost -->
-<div class="drag-ghost" id="drag-ghost" style="display:none"></div>
+<div class="drag-ghost" id="drag-ghost" style="display:none">  <!-- Fitness tab -->
+  <div class="tab-content" id="content-fitness">
+    <div style="padding:10px 0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="openAddSession('gym')">+ Gym session</button>
+        <button class="btn btn-p" onclick="openAddSession('cycling')">+ Cycling session</button>
+        <button class="btn" onclick="openPRs()">🏆 PRs</button>
+        <span style="font-size:11px;color:var(--text3);margin-left:auto" id="fit-week-lbl"></span>
+        <button class="btn" onclick="chFitWk(-1)">‹</button>
+        <button class="btn" onclick="chFitWk(0)">This week</button>
+        <button class="btn" onclick="chFitWk(1)">›</button>
+      </div>
+      <div id="fit-sessions"></div>
+      <div id="fit-volume" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+</div>
 
 <!-- Undo toast -->
 <div class="undo-toast" id="undo-toast">
@@ -680,10 +724,10 @@ async function loadSB(){
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
         mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],
-        customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],
+        customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
-    cleanRecurringMasterStatus();setSS('ok','Synced');setST();render();renderQuote();
+    cleanRecurringMasterStatus();setSS('ok','Synced');setST();applyColMode();render();renderQuote();
   }catch(e){setSS('error','Connection error');render();}
 }
 async function saveSB(){
@@ -726,7 +770,10 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function darken(hex){let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return'#'+[Math.max(0,r-45),Math.max(0,g-45),Math.max(0,b-45)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function weekMon(off){const n=new Date();n.setHours(0,0,0,0);const d=n.getDay(),diff=d===0?-6:1-d;n.setDate(n.getDate()+diff+off*7);return n;}
 function weekDates(off){const m=weekMon(off);return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});}
-function isoDate(d){return d.toISOString().slice(0,10);}
+function isoDate(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dy;
+}
 function weekKey(off){return isoDate(weekMon(off));}
 function fmtDate(d){return d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});}
 function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear();}
@@ -905,6 +952,7 @@ function renderGrid(dates){
       <div class="ghead-name">${DAYS[i]}</div>
       <div class="ghead-date">${fmtDate(d)}</div>
       <span class="ghead-close"onclick="toggleClose('${dk}')"title="${closed?'Reopen':'Close day'}">${closed?'↺':'✓'}</span>
+      <span class="ghead-close${isAway?" day-close-active":''}"onclick="toggleAway('${dk}')"title="${isAway?'Remove away':'Mark away'}">✈</span>
     </div>`;
   });
   SLOTS.forEach(({h:hr,m})=>{
@@ -913,9 +961,18 @@ function renderGrid(dates){
     dates.forEach((d,di)=>{
       const tod=isToday(d),dk=isoDate(d);
       const closed=cd.includes(dk);
-      const cellBlks=wb.filter(b=>b.dayIdx===di&&b.hour===hr&&b.min===m);
+      const isAway=(state.awayDays||[]).includes(dk);
+      // Find all blocks that overlap this cell (start at or before this slot and extend into it)
+      const slotIdx=hr*2+(m===30?1:0);
+      const cellBlks=wb.filter(b=>{
+        if(b.dayIdx!==di)return false;
+        const bStart=b.hour*2+(b.min===30?1:0);
+        const bEnd=bStart+Math.max(1,Math.round((b.duration||1)*2));
+        return bStart===slotIdx; // only render at starting slot
+      });
       let inner='';
-      cellBlks.forEach(b=>{
+      const nBlks=cellBlks.length;
+      cellBlks.forEach((b,bi)=>{
         const col=getActColor(b.activity);
         const slots=Math.max(1,Math.round((b.duration||1)*2));
         const hpx=slots*22-2;
@@ -926,14 +983,18 @@ function renderGrid(dates){
         const faded=lc==='floater'?'opacity:.5;':'';
         const nonWorkDot=!isWork(b.activity)?'<span style="position:absolute;bottom:3px;left:3px;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.45)"></span>':'';
         const actualStr=b.actualHours!=null&&b.status==='done'?`<div class="blk-actual">⏱ ${b.actualHours}h</div>`:'';
+        // Side-by-side layout for overlapping blocks
+        const wPct=nBlks>1?Math.floor(100/nBlks):100;
+        const leftPct=nBlks>1?bi*wPct:0;
+        const overlapStyle=nBlks>1?`left:${leftPct}%;width:${wPct}%;right:auto;`:'' ;
         inner+=`<div class="blk ${lc}${sc}${cc}"id="blk-${esc(b.id)}"
-          style="top:1px;height:${hpx}px;background:${col};${stripe}${faded}border:1.5px solid ${darken(col)};cursor:grab"
+          style="top:1px;height:${hpx}px;background:${col};${stripe}${faded}border:1.5px solid ${darken(col)};cursor:grab;${overlapStyle}"
           onclick="event.stopPropagation();if(pasteMode)return;editBlk('${esc(b.id)}')"
           oncontextmenu="event.stopPropagation();showCtxMenu(event,'${esc(b.id)}')"
           onmousedown="event.stopPropagation();if(event.button===0&&!pasteMode)startDrag(event,'${esc(b.id)}')"
           ontouchstart="event.stopPropagation();if(!pasteMode)startDrag(event,'${esc(b.id)}')">
           <div class="blk-title">${esc(b.title||getActLabel(b.activity))}</div>
-          ${b.secondaryActivity?`<div class="blk-sub">↳ ${esc(getActLabel(b.secondaryActivity))}</div>`:b.secondary?`<div class="blk-sub">↳ ${esc(b.secondary)}</div>`:''}
+          ${nBlks===1&&b.secondaryActivity?`<div class="blk-sub">↳ ${esc(getActLabel(b.secondaryActivity))}</div>`:nBlks===1&&b.secondary?`<div class="blk-sub">↳ ${esc(b.secondary)}</div>`:''}
           ${actualStr}${nonWorkDot}
           <div class="blk-status">${b.status==='done'?'✓':b.status==='skipped'?'→':''}</div>
           <div class="resize-handle"onmousedown="event.stopPropagation();startResize(event,'${esc(b.id)}')"ontouchstart="event.stopPropagation();startResize(event,'${esc(b.id)}')"></div>
@@ -955,7 +1016,8 @@ function renderGrid(dates){
           </div>`;
         });
       }
-      h+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${closed?' closed-col':''}"onclick="cellClick(${di},${hr},${m})">${inner}</div>`;
+      if(isAway&&hr===5&&m===0)inner=`<div class="away-banner">✈ Away</div>`+inner;
+      h+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${closed?' closed-col':''}${isAway?' away-col':''}"onclick="cellClick(${di},${hr},${m})">${inner}</div>`;
     });
   });
   document.getElementById('grid').innerHTML=h;
@@ -965,6 +1027,12 @@ function toggleClose(dk){
   if(!state.closedDays)state.closedDays=[];
   const i=state.closedDays.indexOf(dk);
   if(i>=0)state.closedDays.splice(i,1);else state.closedDays.push(dk);
+  sched();render();
+}
+function toggleAway(dk){
+  if(!state.awayDays)state.awayDays=[];
+  const i=state.awayDays.indexOf(dk);
+  if(i>=0)state.awayDays.splice(i,1);else state.awayDays.push(dk);
   sched();render();
 }
 
@@ -1010,7 +1078,7 @@ function renderProjects(){
     const wkh=actActualHrs(p.activityId,wk,p.id);
     const prog=getProgress(p);
     const isManual=p.manualProgress!=null;
-    const fmtDl=d=>{if(!d)return'';const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});};
+    const fmtDl=d=>{if(!d)return'';const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});};
     const deadlineStr=p.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">due ${fmtDl(p.deadline)}</span>`:'';
     const ms=(p.milestones||[]).map((m,mi)=>{
       const mDeadline=m.deadline?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${fmtDl(m.deadline)}</span>`:'';
@@ -2317,13 +2385,27 @@ function parseAlternatives(r){
   try{const n=JSON.parse(r.notes||'{}');return[n.secondary,n.tertiary].filter(Boolean);}catch(e){return[];}
 }
 
+async function clearDeclined(){
+  const declined=bookingRequests.filter(r=>r.status==='declined');
+  if(!declined.length)return;
+  await Promise.all(declined.map(r=>
+    fetch(SB_BOOK+'/rest/v1/booking_requests?id=eq.'+r.id,{
+      method:'DELETE',headers:SB_BH
+    })
+  ));
+  await fetchBookings();renderInbox();
+  showToast('Cleared '+declined.length+' declined request'+(declined.length>1?'s':''));
+}
+
 function renderInbox(){
   const el=document.getElementById('inbox-body');if(!el)return;
+  const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
+  const active=bookingRequests.filter(r=>r.status!=='declined'||(r.status==='declined'&&Date.now()-new Date(r.created_at).getTime()<24*60*60*1000));
+  const declined=bookingRequests.filter(r=>r.status==='declined');
   if(!bookingRequests.length){
     el.innerHTML='<div class="inbox-empty">No booking requests yet.<br><br>Share your availability page so people can request meetings.</div>';
     return;
   }
-  const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
   el.innerHTML=bookingRequests.map(r=>{
     const dt=new Date(r.requested_date+'T00:00:00');
     const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'short'});
@@ -2594,6 +2676,25 @@ function removeQuote(i){
   if(!state.customQuotes)return;
   state.customQuotes.splice(i,1);
   sched();renderQuoteModal(state.customQuotes);
+}
+
+// ── Column width toggle ──────────────────────────────────
+const COL_MODES=['comfortable','compact','spacious'];
+let colMode=localStorage.getItem('col-mode')||'comfortable';
+
+function applyColMode(){
+  const app=document.getElementById('app');
+  COL_MODES.forEach(m=>app.classList.remove('col-'+m));
+  app.classList.add('col-'+colMode);
+  const btn=document.getElementById('col-toggle-btn');
+  if(btn)btn.textContent='⊞ '+colMode.charAt(0).toUpperCase()+colMode.slice(1);
+}
+
+function cycleColWidth(){
+  const idx=COL_MODES.indexOf(colMode);
+  colMode=COL_MODES[(idx+1)%COL_MODES.length];
+  localStorage.setItem('col-mode',colMode);
+  applyColMode();
 }
 
 // ── Tab system ───────────────────────────────────────────
