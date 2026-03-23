@@ -646,7 +646,7 @@ for(let h=5;h<22;h++){
 }
 
 const DEFAULT_ACTS=[
-  {id:'gym',       color:'#2563a8',label:'Gym / Cycling',    countsAsWork:false},
+  {id:'gym',       color:'#2563a8',label:'Fitness',    countsAsWork:false},
   {id:'edesign',   color:'#e07020',label:'E-Design',         countsAsWork:true},
   {id:'masters',   color:'#5b8dd9',label:'Masters',          countsAsWork:true},
   {id:'wimbledon', color:'#3a8c5c',label:'Wimbledon Cluster',countsAsWork:true},
@@ -1834,7 +1834,7 @@ function setSt(s){
   modalStatus=s;
   const map={pending:'Pending',done:'Done',skipped:'Moved'};
   document.querySelectorAll('.sbtn').forEach(b=>b.classList.toggle('active',b.textContent.trim().startsWith(map[s])));
-  // Show/hide actual hours field — never mutate state here, only in saveBlk
+  // Show/hide actual hours field
   const ar=document.getElementById('actual-row');
   if(ar){ar.style.display=s==='done'?'block':'none';}
   else if(s==='done'){
@@ -1842,6 +1842,35 @@ function setSt(s){
     if(ma){const div=document.createElement('div');div.id='actual-row';div.className='frow';
       div.innerHTML=`<label>Actual hours spent</label><input id="f-actual"type="number"min="0.5"step="0.5"value="${editing?editing.actualHours!=null?editing.actualHours:editing.duration||1:1}">`;
       ma.before(div);}
+  }
+  // Show fitness prompt when marking fitness-related block as done
+  if(s==='done'){
+    const actEl=document.getElementById('f-act');
+    const actId=actEl?actEl.value:'';
+    const act=getAct(actId);
+    const lbl=(act.label||'').toLowerCase();
+    const isFit=lbl.includes('gym')||lbl.includes('fitness')||lbl.includes('cycling')||lbl.includes('fietsry')||actId==='gym';
+    let fp=document.getElementById('fit-prompt');
+    if(!fp){
+      fp=document.createElement('div');fp.id='fit-prompt';
+      fp.style.cssText='background:var(--success-bg);border:.5px solid var(--success-b);border-radius:var(--radius);padding:8px 10px;margin-top:4px;font-size:11px;color:var(--success)';
+      const ma=document.querySelector('.mactions');if(ma)ma.before(fp);
+    }
+    if(isFit){
+      fp.style.display='block';
+      fp.innerHTML='<span>💪 Log this as a fitness session?</span>'
+        +'<div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">'
+        +'<button type="button" class="btn" style="font-size:10px;padding:3px 8px" onclick="logFitFromBlock(&quot;gym&quot;)">🏋 Fitness</button>'
+        +'<button type="button" class="btn" style="font-size:10px;padding:3px 8px" onclick="logFitFromBlock(&quot;cycling&quot;)">🚴 Cycling</button>'
+        +'<button type="button" class="btn" style="font-size:10px;padding:3px 8px" onclick="logFitFromBlock(&quot;cardio&quot;)">🏃 Cardio</button>'
+        +'<button type="button" class="btn" style="font-size:10px;padding:3px 8px;color:var(--text3)" onclick="hideFitPrompt()">Skip</button>'
+        +'</div>';
+    }else{
+      fp.style.display='none';
+    }
+  } else {
+    const fp=document.getElementById('fit-prompt');
+    if(fp)fp.style.display='none';
   }
 }
 
@@ -1914,6 +1943,19 @@ function updateProjectPicker(){
   const projects=(state.projects||[]).filter(p=>p.activityId===actId);
   sel.innerHTML='<option value="">None</option>'+projects.map(p=>`<option value="${p.id}"${p.id===curr?' selected':''}>${esc(p.name)}</option>`).join('');
 }
+function logFitFromBlock(type){
+  // Get date from the current block being edited
+  const daySelVal=(document.getElementById('f-day')?.value||'0_0').split('_');
+  const dayIdx=parseInt(daySelVal[0]);
+  const wkOff=parseInt(daySelVal[1]||'0');
+  const dates=weekDates(weekOffset+wkOff);
+  const date=dates[dayIdx]?localDateStr(dates[dayIdx]):localDateStr(new Date());
+  // Close block modal first, then open fitness modal
+  document.getElementById('mbg').style.display='none';
+  editing=null;
+  openAddSession(type,date);
+}
+function hideFitPrompt(){const fp=document.getElementById('fit-prompt');if(fp)fp.style.display='none';}
 function closeModal(){document.getElementById('mbg').style.display='none';editing=null;}
 function bgClose(e){if(e.target===document.getElementById('mbg'))closeModal();}
 function chWk(d){weekOffset=d===0?0:weekOffset+d;render();}
@@ -3047,19 +3089,17 @@ function renderFitness(){
   const sessions=(state.fitSessions||[]).filter(s=>wkSet.has(s.date)).sort((a,b)=>a.date.localeCompare(b.date));
   const gymS=sessions.filter(s=>s.type==='gym');
   const cycleS=sessions.filter(s=>s.type==='cycling');
-  const totalVol=gymS.reduce((sum,s)=>{
-    return sum+(s.exercises||[]).reduce((es,ex)=>{
-      if(ex.isCardio)return es;
-      return es+(ex.sets||[]).reduce((ss,set)=>ss+(parseFloat(set.reps||0)*parseFloat(set.weight||0)),0);
-    },0);
-  },0);
+  const totalVol=gymS.reduce((sum,s)=>sum+(parseFloat(s.totalVolume)||0),0);
+  const cardioS=sessions.filter(s=>s.type==='cardio');
   const totalDist=cycleS.reduce((sum,s)=>sum+(parseFloat(s.distance)||0),0);
+  const totalCardioMin=cardioS.reduce((sum,s)=>sum+(parseFloat(s.duration)||0),0);
   const volEl=document.getElementById('fit-volume');
   if(volEl)volEl.innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Week summary</div>
     <div class="fit-volume-card">
-      <div class="fit-vol-stat"><div class="fit-vol-num">${Math.round(totalVol).toLocaleString()}</div><div class="fit-vol-lbl">kg lifted</div></div>
-      <div class="fit-vol-stat"><div class="fit-vol-num">${totalDist.toFixed(1)}</div><div class="fit-vol-lbl">km cycled</div></div>
+      <div class="fit-vol-stat"><div class="fit-vol-num">${totalVol?Math.round(totalVol).toLocaleString():'—'}</div><div class="fit-vol-lbl">kg lifted</div></div>
+      <div class="fit-vol-stat"><div class="fit-vol-num">${totalDist?totalDist.toFixed(1):'—'}</div><div class="fit-vol-lbl">km cycled</div></div>
       <div class="fit-vol-stat"><div class="fit-vol-num">${sessions.length}</div><div class="fit-vol-lbl">sessions</div></div>
+      ${totalCardioMin?`<div class="fit-vol-stat"><div class="fit-vol-num">${Math.round(totalCardioMin)}</div><div class="fit-vol-lbl">cardio min</div></div>`:''}
     </div>`;
   const sessEl=document.getElementById('fit-sessions');if(!sessEl)return;
   if(!sessions.length){sessEl.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px">No sessions this week.<br>Add a gym or cycling session above.</div>';return;}
@@ -3067,25 +3107,28 @@ function renderFitness(){
   sessEl.innerHTML=sessions.map((s,si)=>{
     const dt=new Date(s.date+'T12:00:00');
     const dayStr=dt.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'});
-    const icon=s.type==='gym'?'🏋️':'🚴';
+    const icon=s.type==='gym'?'🏋️':s.type==='cardio'?'🏃':'🚴';
     let meta='',body='';
     if(s.type==='gym'){
-      const vol=(s.exercises||[]).reduce((sum,ex)=>ex.isCardio?sum:sum+(ex.sets||[]).reduce((ss,set)=>ss+(parseFloat(set.reps||0)*parseFloat(set.weight||0)),0),0);
-      meta=`${(s.exercises||[]).filter(e=>!e.isCardio).length} exercises · ${Math.round(vol).toLocaleString()} kg`;
-      const cardioItems=(s.exercises||[]).filter(e=>e.isCardio);
-      if(cardioItems.length)meta+=` · ${cardioItems.length} cardio`;
-      body=(s.exercises||[]).map(ex=>{
-        if(ex.isCardio){
-          return`<div class="fit-exercise"><div class="fit-ex-name">🏃 ${esc(ex.name)}</div><div class="fit-ex-sets">${ex.duration||'?'}min${ex.distance?' · '+ex.distance+'km':''}</div></div>`;
-        }
-        const setsStr=(ex.sets||[]).map(set=>`${set.reps}×${set.weight}kg`).join(', ');
-        const maxW=Math.max(...(ex.sets||[]).map(s=>parseFloat(s.weight)||0));
-        const isPR=prs[ex.name]&&maxW>=prs[ex.name]&&maxW>0;
-        return`<div class="fit-exercise"><div class="fit-ex-name">${esc(ex.name)}${isPR?' <span class="fit-pr-badge">🏆 PR</span>':''}</div><div class="fit-ex-sets">${setsStr||'—'}</div></div>`;
-      }).join('');
-    }else{
-      meta=`${s.distance||'?'}km · ${s.duration||'?'}min${s.elevation?' · '+s.elevation+'m':''}${s.route?' · '+esc(s.route):''}`;
-      body=s.notes?`<div style="font-size:11px;color:var(--text2);padding:6px 0">${esc(s.notes)}</div>`:'';
+      const typeLabel=s.sessionType||'Fitness';
+      meta=`${s.title||typeLabel}`;
+      if(s.totalVolume)meta+=` · ${Math.round(s.totalVolume).toLocaleString()} kg`;
+      if(s.duration)meta+=` · ${s.duration}min`;
+      body=s.notes?`<div style="font-size:11px;color:var(--text2);padding:6px 0;font-style:italic">${esc(s.notes)}</div>`:'';
+    } else if(s.type==='cardio'){
+      const typeLabel=s.sessionType||'Cardio';
+      meta=`${s.title||typeLabel}`;
+      if(s.duration)meta+=` · ${s.duration}min`;
+      if(s.distance)meta+=` · ${s.distance}km`;
+      body=s.notes?`<div style="font-size:11px;color:var(--text2);padding:6px 0;font-style:italic">${esc(s.notes)}</div>`:'';
+    } else {
+      meta=s.title||'';
+      if(s.distance)meta+=(meta?' · ':'')+`${s.distance}km`;
+      if(s.duration)meta+=(meta?' · ':'')+`${s.duration}min`;
+      if(s.elevation)meta+=` · ${s.elevation}m elev`;
+      if(s.avgPower)meta+=` · ${s.avgPower}W`;
+      if(s.route&&!s.title)meta=s.route+(meta?' · '+meta:'');
+      body=s.notes?`<div style="font-size:11px;color:var(--text2);padding:6px 0;font-style:italic">${esc(s.notes)}</div>`:'';
     }
     const sid=s.id;
     return`<div class="fit-session">
@@ -3110,32 +3153,52 @@ function deleteFitSession(id){if(!confirm('Delete?'))return;saveUndoSnapshot();s
 
 let modalExercises=[];
 
-function openAddSession(type){modalExercises=[{name:'',sets:[{reps:'',weight:''}],isCardio:false}];renderSessionModal(type,null);document.getElementById('mbg2').style.display='flex';}
+function openAddSession(type,prefillDate){modalExercises=[];renderSessionModal(type,null,prefillDate);document.getElementById('mbg2').style.display='flex';}
 function editFitSession(id){
   const s=(state.fitSessions||[]).find(x=>x.id===id);if(!s)return;
-  modalExercises=s.type==='gym'?(s.exercises||[]).map(ex=>({...ex,sets:(ex.sets||[]).map(s=>({...s}))})):[];
+  modalExercises=[];
   renderSessionModal(s.type,s);document.getElementById('mbg2').style.display='flex';
 }
 
-function renderSessionModal(type,existing){
-  document.getElementById('m2title').textContent=(existing?'Edit ':'Log ')+(type==='gym'?'Gym session 🏋️':'Cycling 🚴');
-  const today=localDateStr(new Date());
+function renderSessionModal(type,existing,prefillDate){
+  const today=prefillDate||localDateStr(new Date());
+  const GYM_TYPES=['Upper Body','Lower Body','Push','Pull','Legs','Core','Full Body','Cardio Mix','HIIT','Other'];
+  const CARDIO_TYPES_LIST=['Running','Treadmill','Rowing','Stairmaster','Elliptical','Assault Bike','Jump Rope','Cross-trainer','Swimming','Other'];
+  document.getElementById('m2title').textContent=(existing?'Edit ':'Log ')+(type==='gym'?'Fitness session 🏋️':type==='cycling'?'Cycling 🚴':'Cardio 🏃');
   if(type==='gym'){
+    const typeOpts=[''].concat(GYM_TYPES).map(t=>`<option value="${t}"${existing?.sessionType===t?' selected':''}>${t||'— select type —'}</option>`).join('');
     document.getElementById('m2body').innerHTML=`
       <div class="frow"><label>Date</label><input type="date" id="fs-date" value="${existing?.date||today}"></div>
-      <div class="frow"><label>Notes</label><input id="fs-notes" value="${esc(existing?.notes||'')}"></div>
-      <div id="fs-exercises">${modalExercises.map((ex,ei)=>renderExRow(ex,ei)).join('')}</div>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn" style="flex:1" onclick="addExRow(false)">+ Strength exercise</button>
-        <button class="btn" style="flex:1" onclick="addExRow(true)">+ Cardio</button>
+      <div class="frow"><label>Session type</label><select id="fs-type">${typeOpts}</select></div>
+      <div class="frow"><label>Custom title (optional)</label><input id="fs-title" placeholder="e.g. Morning Push A" value="${esc(existing?.title||'')}"></div>
+      <div class="frow-2 frow">
+        <div><label>Total volume (kg)</label><input id="fs-vol" type="number" step="1" min="0" placeholder="e.g. 4500" value="${existing?.totalVolume||''}"></div>
+        <div><label>Duration (min)</label><input id="fs-dur" type="number" step="1" min="0" value="${existing?.duration||''}"></div>
       </div>
+      <div class="frow"><label>Notes</label><textarea id="fs-notes" style="height:60px" placeholder="How did it feel? Any PBs?">${esc(existing?.notes||'')}</textarea></div>
       <div class="mactions">
         <button class="btn btn-p" onclick="saveFitSession('${existing?.id||''}','gym')">Save</button>
         <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
       </div>`;
-  }else{
+  } else if(type==='cardio'){
+    const typeOpts=[''].concat(CARDIO_TYPES_LIST).map(t=>`<option value="${t}"${existing?.sessionType===t?' selected':''}>${t||'— select type —'}</option>`).join('');
     document.getElementById('m2body').innerHTML=`
       <div class="frow"><label>Date</label><input type="date" id="fs-date" value="${existing?.date||today}"></div>
+      <div class="frow"><label>Cardio type</label><select id="fs-type">${typeOpts}</select></div>
+      <div class="frow"><label>Custom title (optional)</label><input id="fs-title" placeholder="e.g. Easy morning run" value="${esc(existing?.title||'')}"></div>
+      <div class="frow-2 frow">
+        <div><label>Duration (min)</label><input id="fs-dur" type="number" step="1" min="0" value="${existing?.duration||''}"></div>
+        <div><label>Distance (km, opt.)</label><input id="fs-dist" type="number" step="0.1" min="0" value="${existing?.distance||''}"></div>
+      </div>
+      <div class="frow"><label>Notes</label><textarea id="fs-notes" style="height:50px">${esc(existing?.notes||'')}</textarea></div>
+      <div class="mactions">
+        <button class="btn btn-p" onclick="saveFitSession('${existing?.id||''}','cardio')">Save</button>
+        <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+      </div>`;
+  } else {
+    document.getElementById('m2body').innerHTML=`
+      <div class="frow"><label>Date</label><input type="date" id="fs-date" value="${existing?.date||today}"></div>
+      <div class="frow"><label>Custom title (optional)</label><input id="fs-title" placeholder="e.g. Jonkershoek loop" value="${esc(existing?.title||'')}"></div>
       <div class="frow-2 frow">
         <div><label>Distance (km)</label><input id="fs-dist" type="number" step="0.1" min="0" value="${existing?.distance||''}"></div>
         <div><label>Duration (min)</label><input id="fs-dur" type="number" step="1" min="0" value="${existing?.duration||''}"></div>
@@ -3155,6 +3218,7 @@ function renderSessionModal(type,existing){
       </div>`;
   }
 }
+
 
 function renderExRow(ex,ei){
   const allPresets=[...GYM_PRESETS,...CARDIO_PRESETS];
@@ -3220,23 +3284,30 @@ function removeSet(ei,si){syncExFromDOM();modalExercises[ei].sets.splice(si,1);i
 function refreshExRows(){const wrap=document.getElementById('fs-exercises');if(wrap)wrap.innerHTML=modalExercises.map((ex,ei)=>renderExRow(ex,ei)).join('');}
 
 function saveFitSession(existingId,type){
-  syncExFromDOM();saveUndoSnapshot();
+  saveUndoSnapshot();
   if(!state.fitSessions)state.fitSessions=[];
   const date=document.getElementById('fs-date')?.value;if(!date){alert('Please select a date');return;}
+  const g=id=>document.getElementById(id);
+  const fv=id=>parseFloat(g(id)?.value)||null;
+  const sv=id=>g(id)?.value.trim()||null;
   let session;
   if(type==='gym'){
-    const exercises=modalExercises.map(ex=>({...ex,sets:(ex.sets||[]).filter(s=>s.reps||s.weight)})).filter(ex=>ex.name);
-    session={id:existingId||uid(),type:'gym',date,notes:document.getElementById('fs-notes')?.value.trim()||'',exercises};
-    checkAndUpdatePRs(exercises.filter(e=>!e.isCardio));
-  }else{
+    session={id:existingId||uid(),type:'gym',date,
+      sessionType:sv('fs-type'),title:sv('fs-title'),
+      totalVolume:fv('fs-vol'),duration:fv('fs-dur'),
+      notes:sv('fs-notes')};
+  } else if(type==='cardio'){
+    session={id:existingId||uid(),type:'cardio',date,
+      sessionType:sv('fs-type'),title:sv('fs-title'),
+      duration:fv('fs-dur'),distance:fv('fs-dist'),
+      notes:sv('fs-notes')};
+  } else {
     session={id:existingId||uid(),type:'cycling',date,
-      distance:parseFloat(document.getElementById('fs-dist')?.value)||null,
-      duration:parseFloat(document.getElementById('fs-dur')?.value)||null,
-      elevation:parseFloat(document.getElementById('fs-elev')?.value)||null,
-      avgPower:parseFloat(document.getElementById('fs-power')?.value)||null,
-      avgHR:parseFloat(document.getElementById('fs-hr')?.value)||null,
-      route:document.getElementById('fs-route')?.value.trim()||null,
-      notes:document.getElementById('fs-notes')?.value.trim()||''};
+      title:sv('fs-title'),
+      distance:fv('fs-dist'),duration:fv('fs-dur'),
+      elevation:fv('fs-elev'),avgPower:fv('fs-power'),
+      avgHR:fv('fs-hr'),route:sv('fs-route'),
+      notes:sv('fs-notes')};
   }
   if(existingId){const i=state.fitSessions.findIndex(s=>s.id===existingId);if(i>=0)state.fitSessions[i]=session;else state.fitSessions.push(session);}
   else state.fitSessions.push(session);
