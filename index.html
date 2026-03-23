@@ -953,11 +953,12 @@ function renderGrid(dates){
   dates.forEach((d,i)=>{
     const tod=isToday(d),dk=isoDate(d);
     const closed=cd.includes(dk);
+    const isAwayDay=(state.awayDays||[]).includes(dk);
     h+=`<div class="ghead${tod?' today-head':''}">
       <div class="ghead-name">${DAYS[i]}</div>
       <div class="ghead-date">${fmtDate(d)}</div>
       <span class="ghead-close"onclick="toggleClose('${dk}')"title="${closed?'Reopen':'Close day'}">${closed?'↺':'✓'}</span>
-      <span class="ghead-close${isAway?" day-close-active":''}"onclick="toggleAway('${dk}')"title="${isAway?'Remove away':'Mark away'}">✈</span>
+      <span class="ghead-close${isAwayDay?' day-close-active':''}"onclick="toggleAway('${dk}')"title="${isAwayDay?'Remove away':'Mark away'}">✈</span>
     </div>`;
   });
   SLOTS.forEach(({h:hr,m})=>{
@@ -966,7 +967,7 @@ function renderGrid(dates){
     dates.forEach((d,di)=>{
       const tod=isToday(d),dk=isoDate(d);
       const closed=cd.includes(dk);
-      const isAway=(state.awayDays||[]).includes(dk);
+      const isAway=(state.awayDays||[]).includes(dk); // slot loop - scoped correctly
       // Find all blocks that overlap this cell (start at or before this slot and extend into it)
       const slotIdx=hr*2+(m===30?1:0);
       const cellBlks=wb.filter(b=>{
