@@ -585,23 +585,23 @@ svg.sparkline{overflow:visible;}
 </div>
 
 <!-- Drag ghost -->
-<div class="drag-ghost" id="drag-ghost" style="display:none">  <!-- Fitness tab -->
-  <div class="tab-content" id="content-fitness">
-    <div style="padding:10px 0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="openAddSession('gym')">+ Gym session</button>
-        <button class="btn btn-p" onclick="openAddSession('cycling')">+ Cycling session</button>
-        <button class="btn" onclick="openPRs()">🏆 PRs</button>
-        <span style="font-size:11px;color:var(--text3);margin-left:auto" id="fit-week-lbl"></span>
-        <button class="btn" onclick="chFitWk(-1)">‹</button>
-        <button class="btn" onclick="chFitWk(0)">This week</button>
-        <button class="btn" onclick="chFitWk(1)">›</button>
-      </div>
-      <div id="fit-sessions"></div>
-      <div id="fit-volume" style="margin-top:16px"></div>
-    </div>
-  </div>
+<div class="drag-ghost" id="drag-ghost" style="display:none"></div>
 
+<!-- Fitness tab -->
+<div class="tab-content" id="content-fitness">
+  <div style="padding:10px 0">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="openAddSession('gym')">+ Gym session</button>
+      <button class="btn btn-p" onclick="openAddSession('cycling')">+ Cycling session</button>
+      <button class="btn" onclick="openPRs()">🏆 PRs</button>
+      <span style="font-size:11px;color:var(--text3);margin-left:auto" id="fit-week-lbl"></span>
+      <button class="btn" onclick="chFitWk(-1)">‹</button>
+      <button class="btn" onclick="chFitWk(0)">This week</button>
+      <button class="btn" onclick="chFitWk(1)">›</button>
+    </div>
+    <div id="fit-sessions"></div>
+    <div id="fit-volume" style="margin-top:16px"></div>
+  </div>
 </div>
 
 <!-- Undo toast -->
