@@ -3037,10 +3037,11 @@ const CARDIO_PRESETS=['Treadmill','Rowing Machine','Stairmaster','Elliptical','A
 function chFitWk(d){fitWeekOffset=d===0?0:fitWeekOffset+d;renderFitness();}
 
 function renderFitness(){
+  try{
   const dates=weekDates(fitWeekOffset);
   const m=weekMon(fitWeekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
   const lbl=document.getElementById('fit-week-lbl');
-  if(!lbl)return; // tab not rendered yet
+  if(!lbl){console.warn('fit-week-lbl not found');return;} // tab not rendered yet
   lbl.textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
   const wkSet=new Set(dates.map(d=>localDateStr(d)));
   const sessions=(state.fitSessions||[]).filter(s=>wkSet.has(s.date)).sort((a,b)=>a.date.localeCompare(b.date));
@@ -3097,6 +3098,11 @@ function renderFitness(){
         <button class="btn" style="margin-top:8px;font-size:11px" onclick="editFitSession('${sid}')">✎ Edit</button>
       </div></div>`;
   }).join('');
+  }catch(e){
+    console.error('renderFitness error:',e);
+    const sessEl=document.getElementById('fit-sessions');
+    if(sessEl)sessEl.innerHTML='<div style="padding:1rem;color:var(--danger);font-size:12px">Error: '+e.message+'</div>';
+  }
 }
 
 function toggleFitSession(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
