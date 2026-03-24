@@ -2368,61 +2368,26 @@ function copyPrevWeek(){
 }
 
 function exportICS(){
-  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   function pad(n){return String(n).padStart(2,'0');}
   function toIcal(d){return`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;}
   function esc(s){return(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');}
 
-  // Expand recurring blocks for next 12 weeks + past 4
-  const now=new Date();now.setHours(0,0,0,0);
-  const weekKeys=[];
-  for(let w=-4;w<=12;w++){
-    const d=new Date(now);
-    const day=d.getDay(),diff=day===0?-6:1-day;
-    d.setDate(d.getDate()+diff+w*7);
-    weekKeys.push(isoDate(d));
-  }
-
-  const instances=[];
-  const seen=new Set();
-  weekKeys.forEach(wk=>{
-    const mon=new Date(wk+'T00:00:00');
-    state.blocks.forEach(b=>{
-      let inst=null;
-      if(b.week===wk){inst={...b};}
-      else if(b.recur==='weekly'&&b.dayIdx!==undefined){
-        const oid=b.id+'__'+wk;
-        const ov=state.blocks.find(x=>x.overrideOf===oid);
-        if(ov)inst={...ov};
-        else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
-          inst={...b,id:oid,week:wk,status:'pending',actualHours:null};
-      } else if(b.recur==='custom'&&b.recurDays){
-        b.recurDays.forEach(di=>{
-          const oid=b.id+'__'+wk+'__'+di;
-          const ov=state.blocks.find(x=>x.overrideOf===oid);
-          let ci=null;
-          if(ov)ci={...ov};
-          else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
-            ci={...b,id:oid,week:wk,dayIdx:di,status:'pending',actualHours:null};
-          if(ci&&!seen.has(ci.id+'_'+wk)){seen.add(ci.id+'_'+wk);instances.push({...ci,resolvedWeek:wk});}
-        });
-        return;
-      }
-      if(inst&&!seen.has(inst.id+'_'+wk)){seen.add(inst.id+'_'+wk);instances.push({...inst,resolvedWeek:wk});}
-    });
-  });
+  // Current week only — prevents Apple Calendar duplication
+  const dates=weekDates(weekOffset);
+  const instances=getWeekBlocks();
+  const m=weekMon(weekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
+  const weekLabel=fmtDate(m)+' – '+fmtDate(sun);
 
   const lines=[
     'BEGIN:VCALENDAR','VERSION:2.0',
     'PRODID:-//Corne Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
-    'X-WR-CALNAME:Week Planner','X-WR-TIMEZONE:Africa/Johannesburg',
+    'X-WR-CALNAME:Week Planner ('+weekLabel+')','X-WR-TIMEZONE:Africa/Johannesburg',
   ];
 
   instances.forEach(b=>{
-    const mon=new Date((b.resolvedWeek||b.week)+'T00:00:00');
-    const day=new Date(mon);
-    day.setDate(mon.getDate()+(b.dayIdx||0));
-    day.setHours(b.hour||0,b.min||0,0,0);
+    const baseDate=dates[b.dayIdx||0];if(!baseDate)return;
+    // new Date(y,m,d,h,min) always uses local time — no UTC shift
+    const day=new Date(baseDate.getFullYear(),baseDate.getMonth(),baseDate.getDate(),b.hour||0,b.min||0,0);
     const end=new Date(day);
     end.setMinutes(end.getMinutes()+Math.round((b.duration||1)*60));
     const lbl=getActLabel(b.activity);
@@ -2445,9 +2410,11 @@ function exportICS(){
     ].filter(Boolean));
   });
 
-  // Deadlines
+  // Deadlines — only for current week
+  const wkDateSet=new Set(dates.map(d=>localDateStr(d)));
   (state.deadlines||[]).forEach(dl=>{
     if(dl.fromProject)return;
+    if(!wkDateSet.has(dl.date))return; // only current week
     const dateStr=dl.date.replace(/-/g,'');
     const lbl=getActLabel(dl.activity);
     lines.push('BEGIN:VEVENT',
@@ -2458,9 +2425,9 @@ function exportICS(){
       'CATEGORIES:Deadline','END:VEVENT');
   });
 
-  // Project deadlines
+  // Project deadlines — only current week
   (state.projects||[]).forEach(p=>{
-    if(!p.deadline)return;
+    if(!p.deadline||!wkDateSet.has(p.deadline))return;
     const dateStr=p.deadline.replace(/-/g,'');
     lines.push('BEGIN:VEVENT',
       `UID:proj-${p.id}@planner`,
@@ -2474,7 +2441,8 @@ function exportICS(){
   const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='planner-'+new Date().toISOString().slice(0,10)+'.ics';
+  const wkLabel=localDateStr(weekMon(weekOffset));
+  a.download='planner-week-'+wkLabel+'.ics';
   a.click();URL.revokeObjectURL(a.href);
 }
 
