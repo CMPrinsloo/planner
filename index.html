@@ -410,15 +410,53 @@ svg.sparkline{overflow:visible;}
 .paste-banner button:hover{background:rgba(255,255,255,.35);}
 
 @media print{
-  .sync-bar,.topbar,.stats-row,.daybars,.legend,.fab-group,.mbg,.review-overlay{display:none!important;}
-  #chevron-todos,#chevron-projects,#chevron-mind,.panel-header{display:none!important;}
-  #body-projects,#body-mind{display:none!important;}
-  #body-todos{display:block!important;border-top:none!important;}
-  .panel{border:none!important;margin-top:6px!important;}
-  .print-head{display:block!important;}
-  .grid-outer{border-radius:0!important;}
-  body{background:#fff;}
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @page{size:A4 landscape;margin:8mm 8mm 8mm 8mm;}
+
+  /* Hide everything except the grid */
+  .tab-bar,.sync-bar,.topbar,.stats-row,.daybars,.legend,
+  .fab-group,.mbg,.review-overlay,.undo-toast,.paste-banner,
+  .ctx-menu,.skipped-overlay,.inbox-overlay,
+  #chevron-todos,#chevron-projects,#chevron-mind,
+  .panel-header,#body-projects,#body-mind,#body-todos,
+  .panel,.quote-bar,.tab-content:not(#content-planner){display:none!important;}
+
+  /* Show planner tab content */
+  #content-planner{display:block!important;}
+  .print-head{display:block!important;font-size:13px;font-weight:700;margin-bottom:4px;}
+
+  body,html{background:#fff!important;margin:0;padding:0;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  #app{padding:0!important;max-width:none!important;}
+
+  /* Grid sizing for landscape A4 — usable width ~277mm ≈ 1050px at 96dpi */
+  /* label(36px) + 7 cols × 145px = 36 + 1015 = 1051px */
+  .grid-outer{border-radius:0!important;overflow:visible!important;}
+  .grid-wrap{overflow:visible!important;}
+  :root{
+    --col-w:143px!important;
+    --label-w:38px!important;
+    --slot-h:18px!important;
+  }
+  .col-compact,:root{--col-w:143px!important;}
+
+  /* Compact slot text */
+  .blk-title{font-size:8px!important;line-height:1.2!important;}
+  .blk-sub,.blk-actual,.blk-status{font-size:7px!important;}
+  .blk{border-width:1px!important;}
+  .ghour{font-size:8px!important;}
+  .ghead-name{font-size:9px!important;}
+  .ghead-date{font-size:8px!important;}
+  .ghead-close{display:none!important;}
+  .dl-chip{font-size:8px!important;padding:1px 4px!important;}
+  .dl-label{font-size:8px!important;}
+  .load-label,.load-cell{font-size:8px!important;}
+  .resize-handle{display:none!important;}
+
+  /* Deadlines and load row scroll with grid */
+  .grid-wrap-inner,#dl-row,#load-row,.grid{overflow:visible!important;}
+
+  /* Page break hint */
+  .grid-outer{page-break-inside:avoid;}
 }
 .print-head{display:none;font-size:15px;font-weight:600;margin-bottom:8px;}
 </style>
@@ -2395,7 +2433,7 @@ function exportICS(){
       b.secondary?`Secondary: ${b.secondary}`:'',
       b.notes?`Notes: ${b.notes}`:'',
     ].filter(Boolean).join('\n');
-    lines.push('BEGIN:VEVENT',
+    lines.push(...['BEGIN:VEVENT',
       `UID:${b.id}@planner`,
       `DTSTART;TZID=Africa/Johannesburg:${toIcal(day)}`,
       `DTEND;TZID=Africa/Johannesburg:${toIcal(end)}`,
@@ -2404,7 +2442,7 @@ function exportICS(){
       `CATEGORIES:${esc(lbl)}`,
       `STATUS:${b.status==='done'?'COMPLETED':'CONFIRMED'}`,
       'END:VEVENT'
-    ).filter(Boolean);
+    ].filter(Boolean));
   });
 
   // Deadlines
