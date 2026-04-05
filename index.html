@@ -278,6 +278,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-proj-btn{padding:10px;text-align:center;cursor:pointer;color:var(--info);font-size:12px;border-top:.5px solid var(--border2);}
 .add-proj-btn:hover{background:var(--bg2);}
 
+/* Training plan */
+.train-session{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:8px;overflow:hidden;}
+.train-session-head{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;user-select:none;}
+.train-session-head:hover{background:var(--bg2);}
+.train-type-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;margin-top:2px;letter-spacing:.04em;}
+.train-type-gym{background:#1e3a5f;color:#60a5fa;}
+.train-type-cycling{background:#0d2a1e;color:#34d399;}
+.train-type-rest{background:var(--bg3);color:var(--text3);}
+.train-session-info{flex:1;min-width:0;}
+.train-day{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.train-name{font-size:12px;font-weight:600;color:var(--text);margin-top:1px;}
+.train-dur{font-size:10px;color:var(--text3);margin-top:1px;}
+.train-logged{font-size:10px;color:var(--success);margin-top:2px;}
+.train-body{padding:0 12px 12px;border-top:.5px solid var(--border);}
+.train-detail{font-size:10px;color:var(--text2);white-space:pre-wrap;line-height:1.65;padding:8px;background:var(--bg2);border-radius:var(--radius);margin:8px 0;}
+.train-log-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.train-log-grid .frow{margin:0;}
+.feeling-row{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
+.feeling-btn{width:26px;height:26px;border-radius:50%;border:.5px solid var(--border2);background:var(--bg);font-size:10px;font-weight:600;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .1s;}
+.feeling-btn.sel{background:var(--info);color:#fff;border-color:var(--info);}
+.train-week-totals{background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:10px 12px;margin-top:8px;}
+.train-totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.tot-stat{text-align:center;background:var(--bg);border-radius:var(--radius);padding:8px;}
+.tot-num{font-size:16px;font-weight:700;color:var(--text);}
+.tot-lbl{font-size:9px;color:var(--text3);margin-top:2px;}
+
 /* Fitness tracker */
 .fit-session{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;}
 .fit-session-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;}
@@ -410,55 +436,99 @@ svg.sparkline{overflow:visible;}
 .paste-banner button:hover{background:rgba(255,255,255,.35);}
 
 @media print{
-  @page{size:A4 landscape;margin:8mm 8mm 8mm 8mm;}
+  @page{size:A4 portrait;margin:8mm 8mm 8mm 8mm;}
 
-  /* Hide everything except the grid */
+  /* ── Hide UI chrome ── */
   .tab-bar,.sync-bar,.topbar,.stats-row,.daybars,.legend,
   .fab-group,.mbg,.review-overlay,.undo-toast,.paste-banner,
   .ctx-menu,.skipped-overlay,.inbox-overlay,
   #chevron-todos,#chevron-projects,#chevron-mind,
-  .panel-header,#body-projects,#body-mind,#body-todos,
-  .panel,.quote-bar,.tab-content:not(#content-planner){display:none!important;}
+  .panel-header,#body-projects,#body-mind,
+  .panel,.quote-bar,.tab-content:not(#content-planner),
+  .away-banner,.time-line,.resize-handle,
+  .blk-status,.nonWorkDot{display:none!important;}
 
-  /* Show planner tab content */
+  /* ── Show planner ── */
   #content-planner{display:block!important;}
-  .print-head{display:block!important;font-size:13px;font-weight:700;margin-bottom:4px;}
-
+  .print-head{display:block!important;font-size:12px;font-weight:700;margin-bottom:3px;}
   body,html{background:#fff!important;margin:0;padding:0;}
-  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-  #app{padding:0!important;max-width:none!important;}
+  #app{padding:0!important;}
 
-  /* Grid sizing for landscape A4 — usable width ~277mm ≈ 1050px at 96dpi */
-  /* label(36px) + 7 cols × 145px = 36 + 1015 = 1051px */
-  .grid-outer{border-radius:0!important;overflow:visible!important;}
-  .grid-wrap{overflow:visible!important;}
+  /* ── Portrait A4 sizing ──
+     Usable: ~195mm wide, ~277mm tall at 96dpi ≈ 740px × 1050px
+     Page 1: label + 5 weekday cols → label(32px) + 5×138px = 722px ✓
+     Page 2: label + Sat + Sun + todos panel               */
   :root{
-    --col-w:143px!important;
-    --label-w:38px!important;
-    --slot-h:18px!important;
+    --col-w:138px!important;
+    --label-w:32px!important;
+    --slot-h:16px!important;
   }
-  .col-compact,:root{--col-w:143px!important;}
 
-  /* Compact slot text */
-  .blk-title{font-size:8px!important;line-height:1.2!important;}
-  .blk-sub,.blk-actual,.blk-status{font-size:7px!important;}
-  .blk{border-width:1px!important;}
-  .ghour{font-size:8px!important;}
-  .ghead-name{font-size:9px!important;}
-  .ghead-date{font-size:8px!important;}
-  .ghead-close{display:none!important;}
-  .dl-chip{font-size:8px!important;padding:1px 4px!important;}
-  .dl-label{font-size:8px!important;}
-  .load-label,.load-cell{font-size:8px!important;}
-  .resize-handle{display:none!important;}
-
-  /* Deadlines and load row scroll with grid */
+  /* ── Grid layout ── */
+  .grid-outer{border-radius:0!important;overflow:visible!important;border:none!important;}
+  .grid-wrap{overflow:visible!important;}
   .grid-wrap-inner,#dl-row,#load-row,.grid{overflow:visible!important;}
 
-  /* Page break hint */
-  .grid-outer{page-break-inside:avoid;}
+  /* ── Page 1: show Mon–Fri, hide Sat–Sun columns ──
+     Grid columns: label(1) Mon(2) Tue(3) Wed(4) Thu(5) Fri(6) Sat(7) Sun(8)
+     We target nth-child of grid cells */
+  .grid > *:nth-child(8n+7),  /* Sat header */
+  .grid > *:nth-child(8n+8),  /* Sun header */
+  #dl-row > *:nth-child(7),
+  #dl-row > *:nth-child(8),
+  #load-row > *:nth-child(7),
+  #load-row > *:nth-child(8){
+    display:none!important;
+  }
+  .grid{grid-template-columns:var(--label-w) repeat(5,var(--col-w))!important;}
+  #dl-row,#load-row{grid-template-columns:var(--label-w) repeat(5,var(--col-w))!important;}
+
+  /* ── Clean block styling — no fills, no hatching, just left border ── */
+  .blk{
+    background:transparent!important;
+    background-image:none!important;
+    border:none!important;
+    border-left:3px solid currentColor!important;
+    border-radius:0!important;
+    color:#111!important;
+    opacity:1!important;
+    box-shadow:none!important;
+    padding:1px 3px!important;
+  }
+  .blk.done{opacity:.45!important;text-decoration:line-through!important;}
+  .blk.skipped,.blk.dropped{opacity:.3!important;}
+  /* Preserve the left border colour from inline style background colour */
+  /* We inject a print-colour class via JS — use data attribute instead */
+  /* For now: use a grey tint for all blocks on print */
+  .blk{background:rgba(0,0,0,.04)!important;border-left-color:#666!important;}
+
+  /* ── Text sizes ── */
+  .blk-title{font-size:7px!important;font-weight:600!important;line-height:1.3!important;color:#111!important;}
+  .blk-sub,.blk-actual{font-size:6px!important;color:#444!important;}
+  .ghour{font-size:7px!important;color:#888!important;}
+  .ghead-name{font-size:8px!important;font-weight:700!important;}
+  .ghead-date{font-size:7px!important;color:#555!important;}
+  .ghead-close{display:none!important;}
+  .dl-chip{
+    font-size:7px!important;padding:1px 3px!important;
+    background:transparent!important;
+    border:1px solid #666!important;
+    color:#111!important;
+  }
+  .dl-label,.load-label{font-size:7px!important;}
+  .load-cell{font-size:7px!important;}
+  .dl-del{display:none!important;}
+
+  /* ── Todos panel on page 2 ── */
+  #body-todos{display:block!important;border-top:none!important;page-break-before:always;}
+  .todo-col{font-size:8px!important;}
+  .todo-item{font-size:8px!important;}
+
+  /* ── Page break between grid and todos ── */
+  .grid-outer{page-break-after:always;}
 }
 .print-head{display:none;font-size:15px;font-weight:600;margin-bottom:8px;}
+@media print{.print-hide{display:none!important;}}
 </style>
 </head>
 <body>
@@ -467,7 +537,7 @@ svg.sparkline{overflow:visible;}
     <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📅 Planner</button>
     <button class="tab-btn" id="tab-mind" onclick="switchTab('mind')">🧠 Mind<span class="tab-notif" id="mind-notif" style="display:none"></span></button>
     <button class="tab-btn" id="tab-life" onclick="switchTab('life')">🌱 Life<span class="tab-notif" id="life-notif" style="display:none"></span></button>
-    <button class="tab-btn" id="tab-fitness" onclick="switchTab('fitness')">💪 Fitness</button>
+    <button class="tab-btn" id="tab-fitness" onclick="switchTab('fitness')">🚴 Training</button>
     <div class="sync-mini">
       <div class="sync-dot loading" id="sync-dot"></div>
       <span class="sync-txt" id="sync-txt">...</span>
@@ -625,20 +695,52 @@ svg.sparkline{overflow:visible;}
 <!-- Drag ghost -->
 <div class="drag-ghost" id="drag-ghost" style="display:none"></div>
 
-<!-- Fitness tab -->
+<!-- Training tab -->
 <div class="tab-content" id="content-fitness">
   <div style="padding:10px 0">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <button class="btn btn-p" onclick="openAddSession('gym')">+ Gym session</button>
-      <button class="btn btn-p" onclick="openAddSession('cycling')">+ Cycling session</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="flex:1" id="train-block-header">
+        <div style="font-size:13px;font-weight:700;color:var(--text)" id="train-block-title">🚴 Training Plan</div>
+        <div style="font-size:10px;color:var(--text3)" id="train-block-meta">No plan loaded</div>
+      </div>
+      <button class="btn" onclick="document.getElementById('train-import-input').click()" title="Import Excel training block">📂 Import</button>
+      <input type="file" id="train-import-input" accept=".xlsx" style="display:none" onchange="importTrainingBlock(event)">
+      <button class="btn" onclick="exportTrainReport()" title="Export session log for feedback">📤 Export</button>
       <button class="btn" onclick="openPRs()">🏆 PRs</button>
-      <span style="font-size:11px;color:var(--text3);margin-left:auto" id="fit-week-lbl"></span>
-      <button class="btn" onclick="chFitWk(-1)">‹</button>
-      <button class="btn" onclick="chFitWk(0)">This week</button>
-      <button class="btn" onclick="chFitWk(1)">›</button>
     </div>
-    <div id="fit-sessions"></div>
-    <div id="fit-volume" style="margin-top:16px"></div>
+    <div style="background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;margin-bottom:10px;font-size:10px;color:var(--text2)">
+      <div style="font-weight:600;margin-bottom:3px;cursor:pointer" onclick="document.getElementById('zones-body').style.display=document.getElementById('zones-body').style.display==='none'?'block':'none'">⚡ Training zones (tap to expand/collapse)</div>
+      <div id="zones-body" style="display:none;margin-top:4px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px 12px">
+          <div><b style="color:#60a5fa">Z1</b> Recovery — &lt;115W / &lt;120bpm</div>
+          <div><b style="color:#34d399">Z2</b> Endurance — 117–157W / 120–140bpm</div>
+          <div><b style="color:#fbbf24">Z3</b> Tempo — 159–182W / 140–155bpm</div>
+          <div><b style="color:#f97316">Z4</b> Sweet Spot — 184–197W / 155–165bpm</div>
+          <div><b style="color:#ef4444">Z5</b> VO2 Max — 220–251W / 170–182bpm</div>
+        </div>
+      </div>
+    </div>
+    <div id="train-week-tabs" style="display:flex;gap:6px;margin-bottom:10px"></div>
+    <div id="train-sessions"></div>
+    <div id="train-totals" style="margin-top:12px"></div>
+    <details style="margin-top:16px">
+      <summary style="font-size:11px;color:var(--text3);cursor:pointer;padding:4px 0">+ Ad-hoc session log (non-plan)</summary>
+      <div style="padding-top:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn" onclick="openAddSession('gym')">🏋️ Fitness</button>
+          <button class="btn" onclick="openAddSession('cycling')">🚴 Cycling</button>
+          <button class="btn" onclick="openAddSession('cardio')">🏃 Cardio</button>
+        </div>
+        <div id="fit-week-lbl" style="font-size:11px;color:var(--text3);margin-bottom:6px"></div>
+        <div style="display:flex;gap:5px;margin-bottom:8px">
+          <button class="btn" onclick="chFitWk(-1)">‹</button>
+          <button class="btn" onclick="chFitWk(0)">This week</button>
+          <button class="btn" onclick="chFitWk(1)">›</button>
+        </div>
+        <div id="fit-sessions"></div>
+        <div id="fit-volume"></div>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -766,7 +868,7 @@ async function loadSB(){
         projects:d.projects||[],customActivities:d.customActivities||[],
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
-        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},
+        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},trainLogs:d.trainLogs||{},trainingPlans:d.trainingPlans||[],
         customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
@@ -942,8 +1044,10 @@ function renderDeadlines(dates){
     const chips=dls.filter(x=>x.date===dk).map(x=>{
       const col=getActColor(x.activity);
       const timeDisp=x.time?` · ${x.time}`:'';
-      return`<div class="dl-chip"style="background:${col}22;color:${col};border:1px solid ${col}55"onclick="event.stopPropagation();editDeadline('${esc(x.id)}')">
-        ${esc(x.title)}${timeDisp}
+      const isDone=x.done;
+      return`<div class="dl-chip"style="${isDone?'background:var(--success-bg);color:var(--success);border:1px solid var(--success-b);opacity:.6;text-decoration:line-through':'background:'+col+'22;color:'+col+';border:1px solid '+col+'55'}"onclick="event.stopPropagation();editDeadline('${esc(x.id)}')">
+        ${isDone?'✓ ':''}${esc(x.title)}${timeDisp}
+        <span class="dl-del" title="Mark ${isDone?'undone':'done'}" onclick="event.stopPropagation();toggleDeadlineDone('${esc(x.id)}')">✓</span>
         <span class="dl-del"onclick="event.stopPropagation();deleteDeadline('${esc(x.id)}')">✕</span>
       </div>`;
     }).join('');
@@ -1118,8 +1222,10 @@ function getProgress(p){
 
 function renderProjects(){
   const wk=weekKey(weekOffset);
-  const projects=state.projects||[];
-  document.getElementById('projects-grid').innerHTML=projects.map((p,pi)=>{
+  const allProjects=state.projects||[];
+  const projects=allProjects.filter(p=>!p.archived);
+  const archivedProjs=allProjects.filter(p=>p.archived);
+  document.getElementById('projects-grid').innerHTML=[...projects.map((p,pi)=>{
     const act=getAct(p.activityId);
     const wkh=actActualHrs(p.activityId,wk,p.id);
     const prog=getProgress(p);
@@ -1165,6 +1271,7 @@ function renderProjects(){
         <div class="project-dot"style="background:${act.color}"></div>
         <div class="project-name">${esc(p.name)}${deadlineStr}</div>
         <div class="project-hrs">${wkh}h logged</div>
+        ${prog===100?`<button class="btn" style="font-size:9px;padding:1px 6px;color:var(--success)" onclick="event.stopPropagation();archiveProject('${p.id}')">✓ Archive</button>`:''}
         <div class="project-edit"onclick="editProject('${p.id}')">✎</div>
       </div>
       <div class="prog-label">
@@ -1178,7 +1285,19 @@ function renderProjects(){
       <div class="milestones">${ms}</div>
       <div class="add-ms"><input type="text"placeholder="+ milestone"onkeydown="if(event.key==='Enter')addMs('${p.id}',this)"></div>
     </div>`;
-  }).join('');
+  }),...archivedProjs.map((p,pi)=>{
+    const act=getAct(p.activityId);
+    const prog=getProgress(p);
+    return`<div class="project-card" style="opacity:.5;border-color:var(--border)">
+      <div class="project-card-head">
+        <div class="project-dot"style="background:${act.color}"></div>
+        <div class="project-name" style="text-decoration:line-through">${esc(p.name)}</div>
+        <span style="font-size:9px;color:var(--success);margin-left:4px">✓ Done</span>
+        <button class="btn" style="font-size:9px;padding:1px 6px;margin-left:auto" onclick="unarchiveProject('${p.id}')">Restore</button>
+        <div class="project-edit" onclick="deleteProject('${p.id}')">🗑</div>
+      </div>
+    </div>`;
+  })].join('');
 }
 
 function renderMind(dates){
@@ -1387,6 +1506,15 @@ function deleteProject(id){
   if(!confirm('Delete project?'))return;
   state.projects=state.projects.filter(x=>x.id!==id);
   sched();document.getElementById('mbg2').style.display='none';renderProjects();
+}
+function archiveProject(id){
+  const p=state.projects.find(x=>x.id===id);if(!p)return;
+  p.archived=true;document.getElementById('mbg2').style.display='none';
+  sched();renderProjects();showToast('Project archived');
+}
+function unarchiveProject(id){
+  const p=state.projects.find(x=>x.id===id);if(!p)return;
+  p.archived=false;sched();renderProjects();showToast('Project restored');
 }
 function moveProject(idx,dir){
   const arr=state.projects;
@@ -1763,6 +1891,11 @@ function openDlModal(date){
       <button class="btn"onclick="document.getElementById('dlmbg').style.display='none'">Cancel</button>
     </div>`;
   document.getElementById('dlmbg').style.display='flex';
+}
+function toggleDeadlineDone(id){
+  const dl=state.deadlines.find(x=>x.id===id);if(!dl)return;
+  dl.done=!dl.done;
+  sched();renderDeadlines(weekDates(weekOffset));
 }
 function editDeadline(id){
   const dl=state.deadlines.find(x=>x.id===id);if(!dl)return;
@@ -2802,18 +2935,7 @@ function cycleColWidth(){
 let currentTab='planner';
 let lifeWeekOffset=0;
 
-function switchTab(tab){
-  currentTab=tab;
-  ['planner','mind','life','fitness'].forEach(t=>{
-    const btn=document.getElementById('tab-'+t);
-    const cnt=document.getElementById('content-'+t);
-    if(btn)btn.classList.toggle('active',t===tab);
-    if(cnt)cnt.classList.toggle('active',t===tab);
-  });
-  if(tab==='mind')renderMind(weekDates(weekOffset));
-  if(tab==='life')renderLifeTracker();
-  if(tab==='fitness')renderFitness();
-}
+// switchTab moved to training section above
 
 function updateTabNotifs(){
   const today=localDateStr(new Date());
@@ -3353,6 +3475,369 @@ function addManualPR(){
   if(!name||!weight)return;
   if(!state.fitPRs)state.fitPRs={};
   state.fitPRs[name]=weight;sched();openPRs();
+}
+
+// Print handler — tag Sat/Sun columns for hiding
+window.addEventListener('beforeprint', ()=>{
+  document.querySelectorAll('.ghead,.gcell,.dl-cell,.load-cell').forEach(el=>{
+    // Sat = index 6, Sun = index 7 in the grid
+    const parent = el.parentElement;
+    if(!parent)return;
+    const children = Array.from(parent.children);
+    const idx = children.indexOf(el);
+    // In a 8-column grid (label + 7 days): sat=6(0-indexed), sun=7
+    if(idx===6||idx===7)el.classList.add('print-hide');
+  });
+  // Also hide Sat/Sun headers specifically
+  const heads = document.querySelectorAll('.ghead');
+  if(heads.length>=7){heads[5].classList.add('print-hide');heads[6].classList.add('print-hide');}
+});
+window.addEventListener('afterprint', ()=>{
+  document.querySelectorAll('.print-hide').forEach(el=>el.classList.remove('print-hide'));
+});
+
+
+// ── Training Plan ────────────────────────────────────────
+const BLOCK1_PLAN = null; // loaded dynamically from state.trainingPlan
+
+let trainWeek = 1;
+let trainLogs = null; // loaded from state.trainLogs
+
+function getTrainLogs(){return state.trainLogs||{};}
+function getActivePlan(){
+  // Returns the currently active training plan from state
+  // Falls back to any plan in trainingPlans array
+  const plans=state.trainingPlans||[];
+  if(!plans.length)return null;
+  // Use the most recently imported plan
+  return plans[plans.length-1];
+}
+function getPlanWeeks(plan){
+  // Returns array of week objects from a plan
+  if(!plan||!plan.weeks)return[];
+  return plan.weeks;
+}
+
+function switchTab(tab){
+  currentTab=tab;
+  ['planner','mind','life','fitness'].forEach(t=>{
+    const btn=document.getElementById('tab-'+t);
+    const cnt=document.getElementById('content-'+t);
+    if(btn)btn.classList.toggle('active',t===tab);
+    if(cnt)cnt.classList.toggle('active',t===tab);
+  });
+  if(tab==='mind')renderMind(weekDates(weekOffset));
+  if(tab==='life')renderLifeTracker();
+  if(tab==='fitness')renderTraining();
+}
+
+function setTrainWeek(w){
+  trainWeek=w;
+  renderTraining();
+}
+
+function renderTraining(){
+  try{
+    updateTrainBlockHeader();
+    const weekTabs = document.getElementById('train-week-tabs');
+    if(!weekTabs)return;
+    const plan=getActivePlan();
+    if(!plan){
+      document.getElementById('train-sessions').innerHTML=`
+        <div style="text-align:center;padding:2rem;color:var(--text3);font-size:12px">
+          <div style="font-size:32px;margin-bottom:12px">📋</div>
+          <div style="font-weight:600;color:var(--text);margin-bottom:6px">No training plan loaded</div>
+          <div style="margin-bottom:12px">Import your training block Excel file to get started.</div>
+          <button class="btn btn-p" onclick="document.getElementById('train-import-input').click()">📂 Import Excel block</button>
+          <input type="file" id="train-import-input" accept=".xlsx" style="display:none" onchange="importTrainingBlock(event)">
+        </div>`;
+      document.getElementById('train-totals').innerHTML='';
+      weekTabs.innerHTML='';
+      return;
+    }
+    const weeks=getPlanWeeks(plan);
+    const numWeeks=weeks.length;
+    weekTabs.innerHTML=weeks.map((w,i)=>
+      `<button class="btn${trainWeek===i+1?' btn-p':''}" style="flex:1" onclick="setTrainWeek(${i+1})">Week ${i+1}</button>`
+    ).join('');
+    const sessions=(weeks[trainWeek-1]||{sessions:[]}).sessions||[];
+    const logs = getTrainLogs();
+    const sessEl = document.getElementById('train-sessions');
+    if(!sessEl)return;
+
+    sessEl.innerHTML = sessions.map((s,si) => {
+      const logKey = `b1_w${trainWeek}_${si}`;
+      const log = logs[logKey];
+      const isLogged = log && (log.feeling || log.notes || log.watts || log.hr);
+      const typeKey = s.type.toLowerCase().includes('cycling') ? 'cycling' : s.type.toLowerCase().includes('rest') ? 'rest' : 'gym';
+      const badgeClass = `train-type-${typeKey}`;
+      const badgeLabel = typeKey==='cycling'?'🚴 Cycling':typeKey==='rest'?'Rest':'🏋️ Gym';
+
+      const loggedBadge = isLogged ? `<div class="train-logged">✓ Logged · Feeling ${log.feeling||'?'}/10${log.watts?` · ${log.watts}W`:''}</div>` : '';
+
+      const logForm = `
+        <div class="train-log-grid">
+          <div class="frow"><label>Ave Watts</label><input id="tw-${logKey}-watts" type="number" step="1" min="0" value="${esc(String(log?.watts||''))}" placeholder="—"></div>
+          <div class="frow"><label>Ave HR (bpm)</label><input id="tw-${logKey}-hr" type="number" step="1" min="0" value="${esc(String(log?.hr||''))}" placeholder="—"></div>
+          <div class="frow"><label>Max HR (bpm)</label><input id="tw-${logKey}-maxhr" type="number" step="1" min="0" value="${esc(String(log?.maxhr||''))}" placeholder="—"></div>
+          <div class="frow"><label>Actual duration</label><input id="tw-${logKey}-dur" value="${esc(String(log?.dur||''))}" placeholder="e.g. 75 min"></div>
+        </div>
+        <div class="frow" style="margin-top:6px"><label>Feeling (1–10)</label>
+          <div class="feeling-row">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<div class="feeling-btn${log?.feeling===n?' sel':''}" onclick="setFeeling('${logKey}',${n},this)">${n}</div>`).join('')}
+          </div>
+        </div>
+        <div class="frow" style="margin-top:6px"><label>Notes</label><textarea id="tw-${logKey}-notes" style="height:50px" placeholder="How did it feel? Any PRs?">${esc(log?.notes||'')}</textarea></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn btn-p" style="flex:1" onclick="saveTrainLog('${logKey}')">Save log</button>
+          ${isLogged?`<button class="btn" onclick="clearTrainLog('${logKey}')" style="color:var(--danger)">Clear</button>`:''}
+        </div>`;
+
+      return `<div class="train-session">
+        <div class="train-session-head" onclick="toggleTrainSession('ts-body-${logKey}')">
+          <div style="padding-top:2px">
+            <div class="train-type-badge ${badgeClass}">${badgeLabel}</div>
+          </div>
+          <div class="train-session-info">
+            <div class="train-day">${s.day}</div>
+            <div class="train-name">${esc(s.name)}</div>
+            <div class="train-dur">${esc(s.duration)}</div>
+            ${loggedBadge}
+          </div>
+          <div style="font-size:14px;color:var(--text3);padding-top:2px">${isLogged?'✓':'›'}</div>
+        </div>
+        <div class="train-body" id="ts-body-${logKey}" style="display:none">
+          <div class="train-detail">${esc(s.detail)}</div>
+          ${s.type.toLowerCase().includes('rest')?'<div style="font-size:11px;color:var(--text3);padding:6px 0">Rest day — no log needed. Recover well 💤</div>':logForm}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Week totals
+    renderTrainTotals(sessions, logs);
+  } catch(e) {
+    console.error('renderTraining error:', e);
+    const el = document.getElementById('train-sessions');
+    if(el) el.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:1rem">Error: '+e.message+'</div>';
+  }
+}
+
+function toggleTrainSession(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function setFeeling(logKey, n, btn){
+  // Update visual
+  btn.closest('.feeling-row').querySelectorAll('.feeling-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  // Store temporarily in DOM
+  btn.dataset.selected='true';
+}
+
+function getSelectedFeeling(logKey){
+  const row=document.querySelector(`#ts-body-${logKey} .feeling-row`);
+  if(!row)return null;
+  const sel=row.querySelector('.feeling-btn.sel');
+  return sel?parseInt(sel.textContent):null;
+}
+
+function saveTrainLog(logKey){
+  if(!state.trainLogs)state.trainLogs={};
+  const g=id=>{const el=document.getElementById(id);return el?el.value.trim():null;};
+  const log={
+    watts:parseFloat(g(`tw-${logKey}-watts`))||null,
+    hr:parseFloat(g(`tw-${logKey}-hr`))||null,
+    maxhr:parseFloat(g(`tw-${logKey}-maxhr`))||null,
+    dur:g(`tw-${logKey}-dur`)||null,
+    feeling:getSelectedFeeling(logKey),
+    notes:g(`tw-${logKey}-notes`)||null,
+    savedAt:new Date().toISOString()
+  };
+  // Clean nulls
+  Object.keys(log).forEach(k=>{if(log[k]===null)delete log[k];});
+  state.trainLogs[logKey]=log;
+  sched();renderTraining();showToast('Session logged ✓');
+}
+
+function clearTrainLog(logKey){
+  if(!state.trainLogs)return;
+  delete state.trainLogs[logKey];
+  sched();renderTraining();
+}
+
+function renderTrainTotals(sessions, logs){
+  const totEl=document.getElementById('train-totals');if(!totEl)return;
+  const loggedSessions=sessions.map((s,si)=>logs[`b1_w${trainWeek}_${si}`]).filter(Boolean);
+  if(!loggedSessions.length){totEl.innerHTML='';return;}
+  const avgWatts=loggedSessions.filter(l=>l.watts).map(l=>l.watts);
+  const avgHR=loggedSessions.filter(l=>l.hr).map(l=>l.hr);
+  const feelings=loggedSessions.filter(l=>l.feeling).map(l=>l.feeling);
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  totEl.innerHTML=`<div class="train-week-totals">
+    <div style="font-size:11px;font-weight:600;color:var(--text)">Week ${trainWeek} — ${loggedSessions.length}/${sessions.filter(s=>!s.type.toLowerCase().includes('rest')).length} sessions logged</div>
+    <div class="train-totals-grid">
+      <div class="tot-stat"><div class="tot-num">${avg(avgWatts)||'—'}</div><div class="tot-lbl">Avg watts</div></div>
+      <div class="tot-stat"><div class="tot-num">${avg(avgHR)||'—'}</div><div class="tot-lbl">Avg HR</div></div>
+      <div class="tot-stat"><div class="tot-num">${avg(feelings)||'—'}</div><div class="tot-lbl">Avg feeling</div></div>
+    </div>
+  </div>`;
+}
+
+
+// ── Training plan import / export ────────────────────────
+
+async function importTrainingBlock(event){
+  const file = event.target.files[0];
+  if(!file)return;
+  showToast('Parsing Excel...');
+
+  const data = await file.arrayBuffer();
+  // SheetJS is already loaded for XLSX export
+  const XLSX = window.XLSX;
+  if(!XLSX){showToast('SheetJS not loaded — try again');return;}
+
+  const wb = XLSX.read(data, {type:'arraybuffer', cellText:true, cellNF:false});
+
+  // Parse plan metadata from Overview sheet
+  const overviewWs = wb.Sheets['📊 Overview'] || wb.Sheets[wb.SheetNames[0]];
+  let blockTitle = 'Training Block';
+  let ftp = null;
+  let zones = [];
+
+  if(overviewWs){
+    const ovRows = XLSX.utils.sheet_to_json(overviewWs, {header:1, defval:null});
+    // Find block title (first non-empty cell in col B)
+    for(const row of ovRows){
+      if(row[1]&&typeof row[1]==='string'&&row[1].includes('BLOCK')){blockTitle=row[1].trim();break;}
+    }
+    // Find FTP
+    const ftpMatch = blockTitle.match(/FTP[:\s]+(\d+)W?/i);
+    if(ftpMatch)ftp=parseInt(ftpMatch[1]);
+    // Parse zones
+    let inZones=false;
+    for(const row of ovRows){
+      if(row[1]==='Zone'){inZones=true;continue;}
+      if(inZones&&row[1]&&String(row[1]).match(/^Z\d/)){
+        zones.push({zone:row[1],name:row[2],wattsLow:row[4],wattsHigh:row[5],hr:row[6]});
+      }
+      if(inZones&&row[1]&&String(row[1]).includes('HYROX'))break;
+    }
+  }
+
+  // Parse weekly sheets
+  const weekSheets = wb.SheetNames.filter(n=>n.match(/Week \d+/i));
+  const weeks = weekSheets.map(sheetName=>{
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+    const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const sessions = [];
+    let weekTitle = sheetName;
+
+    for(const row of rows){
+      // Grab week title from first content row
+      if(row[1]&&typeof row[1]==='string'&&row[1].includes('WEEK')&&row[1].includes('BLOCK')){
+        weekTitle=row[1].trim();
+      }
+      if(DAYS.includes(row[1])){
+        sessions.push({
+          day: row[1],
+          type: String(row[2]||''),
+          name: String(row[3]||''),
+          duration: String(row[4]||''),
+          detail: String(row[5]||'').replace(/\n/g,'\n')
+        });
+      }
+    }
+    return{week:sheetName, title:weekTitle, sessions};
+  });
+
+  if(!weeks.length){showToast('No week sheets found — check Excel format');return;}
+
+  // Save to state
+  if(!state.trainingPlans)state.trainingPlans=[];
+  const blockId = 'block_'+Date.now();
+  const newPlan = {
+    id: blockId,
+    title: blockTitle,
+    ftp, zones,
+    weeks,
+    importedAt: new Date().toISOString(),
+    source: file.name
+  };
+  state.trainingPlans.push(newPlan);
+  sched();
+  renderTraining();
+  showToast('Block imported: '+weeks.length+' weeks, '+weeks.reduce((n,w)=>n+w.sessions.length,0)+' sessions');
+  event.target.value=''; // reset input
+}
+
+function updateTrainBlockHeader(){
+  const plan = getActivePlan();
+  const titleEl = document.getElementById('train-block-title');
+  const metaEl = document.getElementById('train-block-meta');
+  if(!titleEl||!metaEl)return;
+  if(!plan){
+    titleEl.textContent='🚴 Training Plan';
+    metaEl.textContent='No plan loaded — import an Excel block';
+    return;
+  }
+  titleEl.textContent='🚴 '+plan.title.replace(/CORNÈ TRAINING PLAN —?\s*/i,'').trim();
+  metaEl.textContent=(plan.ftp?'FTP: '+plan.ftp+'W · ':'')+
+    plan.weeks.length+' weeks · Imported '+new Date(plan.importedAt).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+}
+
+function exportTrainReport(){
+  const plan = getActivePlan();
+  const logs = getTrainLogs();
+  if(!plan){showToast('No plan loaded');return;}
+
+  let report = `TRAINING BLOCK REPORT — ${plan.title}\n`;
+  report += `FTP at start: ${plan.ftp||'—'}W\n`;
+  report += `Generated: ${new Date().toLocaleDateString('en-ZA',{day:'numeric',month:'long',year:'numeric'})}\n`;
+  report += '='.repeat(60)+'\n\n';
+
+  plan.weeks.forEach((week,wi)=>{
+    report += `\n${week.title||('WEEK '+(wi+1))}\n${'-'.repeat(40)}\n`;
+    const weekLogs=[];
+    week.sessions.forEach((s,si)=>{
+      const logKey=`b1_w${wi+1}_${si}`;
+      const log=logs[logKey];
+      report += `\n${s.day.toUpperCase()} — ${s.name} (${s.duration})\n`;
+      report += `Type: ${s.type}\n`;
+      if(log&&Object.keys(log).length>1){
+        report += `  ✓ LOGGED:\n`;
+        if(log.watts)report+=`    Avg Watts: ${log.watts}W\n`;
+        if(log.hr)report+=`    Avg HR: ${log.hr}bpm\n`;
+        if(log.maxhr)report+=`    Max HR: ${log.maxhr}bpm\n`;
+        if(log.dur)report+=`    Actual duration: ${log.dur}\n`;
+        if(log.feeling)report+=`    Feeling: ${log.feeling}/10\n`;
+        if(log.notes)report+=`    Notes: ${log.notes}\n`;
+        weekLogs.push(log);
+      } else {
+        report += `  — Not logged\n`;
+      }
+    });
+    // Week summary
+    const feelings=weekLogs.filter(l=>l.feeling).map(l=>l.feeling);
+    const watts=weekLogs.filter(l=>l.watts).map(l=>l.watts);
+    if(weekLogs.length){
+      report+=`\nWeek ${wi+1} summary: ${weekLogs.length}/${week.sessions.filter(s=>!s.type.toLowerCase().includes('rest')).length} sessions logged`;
+      if(watts.length)report+=` · Avg ${Math.round(watts.reduce((a,b)=>a+b)/watts.length)}W`;
+      if(feelings.length)report+=` · Avg feeling ${(feelings.reduce((a,b)=>a+b)/feelings.length).toFixed(1)}/10`;
+      report+='\n';
+    }
+  });
+
+  report += '\n'+'='.repeat(60)+'\n';
+  report += 'Use this report to brief your coach/AI for the next training block.\n';
+
+  const blob=new Blob([report],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='training-report-'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();URL.revokeObjectURL(a.href);
+  showToast('Report exported');
 }
 
 loadSB();
