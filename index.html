@@ -104,8 +104,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dl-label{padding:4px 5px;font-size:9px;font-weight:600;color:var(--text3);border-right:.5px solid var(--border2);display:flex;align-items:center;letter-spacing:.04em;text-transform:uppercase;}
 .dl-cell{border-right:.5px solid var(--border2);padding:3px 4px;min-height:26px;cursor:pointer;}
 .dl-cell:hover{background:var(--bg3);}
-.dl-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:500;margin:1px;cursor:pointer;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dl-chip .dl-del{opacity:0;margin-left:2px;}
+.dl-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:500;margin:1px;cursor:pointer;max-width:160px;white-space:nowrap;overflow:hidden;}
+.dl-chip-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+.dl-chip .dl-del{opacity:0;flex-shrink:0;}
 .dl-chip:hover .dl-del{opacity:1;}
 
 /* Load row */
@@ -1045,10 +1046,10 @@ function renderDeadlines(dates){
       const col=getActColor(x.activity);
       const timeDisp=x.time?` · ${x.time}`:'';
       const isDone=x.done;
-      return`<div class="dl-chip"style="${isDone?'background:var(--success-bg);color:var(--success);border:1px solid var(--success-b);opacity:.6;text-decoration:line-through':'background:'+col+'22;color:'+col+';border:1px solid '+col+'55'}"onclick="event.stopPropagation();editDeadline('${esc(x.id)}')">
-        ${isDone?'✓ ':''}${esc(x.title)}${timeDisp}
+      return`<div class="dl-chip"style="${isDone?'background:var(--success-bg);color:var(--success);border:1px solid var(--success-b);opacity:.6':'background:'+col+'22;color:'+col+';border:1px solid '+col+'55'}"onclick="event.stopPropagation();editDeadline('${esc(x.id)}')">
+        <span class="dl-chip-title"style="${isDone?'text-decoration:line-through':''}">${isDone?'✓ ':''}${esc(x.title)}${timeDisp}</span>
         <span class="dl-del" title="Mark ${isDone?'undone':'done'}" onclick="event.stopPropagation();toggleDeadlineDone('${esc(x.id)}')">✓</span>
-        <span class="dl-del"onclick="event.stopPropagation();deleteDeadline('${esc(x.id)}')">✕</span>
+        <span class="dl-del" onclick="event.stopPropagation();deleteDeadline('${esc(x.id)}')">✕</span>
       </div>`;
     }).join('');
     h+=`<div class="dl-cell"onclick="openDlModal('${dk}')">${chips}</div>`;
