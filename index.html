@@ -3566,7 +3566,7 @@ function renderTraining(){
     if(!sessEl)return;
 
     sessEl.innerHTML = sessions.map((s,si) => {
-      const logKey = `b1_w${trainWeek}_${si}`;
+      const logKey = `${plan.id}_w${trainWeek}_${si}`;
       const log = logs[logKey];
       const isLogged = log && (log.feeling || log.notes || log.watts || log.hr);
       const typeKey = s.type.toLowerCase().includes('cycling') ? 'cycling' : s.type.toLowerCase().includes('rest') ? 'rest' : 'gym';
@@ -3614,7 +3614,7 @@ function renderTraining(){
     }).join('');
 
     // Week totals
-    renderTrainTotals(sessions, logs);
+    renderTrainTotals(sessions, logs, plan);
   } catch(e) {
     console.error('renderTraining error:', e);
     const el = document.getElementById('train-sessions');
@@ -3666,9 +3666,9 @@ function clearTrainLog(logKey){
   sched();renderTraining();
 }
 
-function renderTrainTotals(sessions, logs){
+function renderTrainTotals(sessions, logs, plan){
   const totEl=document.getElementById('train-totals');if(!totEl)return;
-  const loggedSessions=sessions.map((s,si)=>logs[`b1_w${trainWeek}_${si}`]).filter(Boolean);
+  const loggedSessions=sessions.map((s,si)=>logs[`${plan.id}_w${trainWeek}_${si}`]).filter(Boolean);
   if(!loggedSessions.length){totEl.innerHTML='';return;}
   const avgWatts=loggedSessions.filter(l=>l.watts).map(l=>l.watts);
   const avgHR=loggedSessions.filter(l=>l.hr).map(l=>l.hr);
@@ -3801,7 +3801,7 @@ function exportTrainReport(){
     report += `\n${week.title||('WEEK '+(wi+1))}\n${'-'.repeat(40)}\n`;
     const weekLogs=[];
     week.sessions.forEach((s,si)=>{
-      const logKey=`b1_w${wi+1}_${si}`;
+      const logKey=`${plan.id}_w${wi+1}_${si}`;
       const log=logs[logKey];
       report += `\n${s.day.toUpperCase()} — ${s.name} (${s.duration})\n`;
       report += `Type: ${s.type}\n`;
