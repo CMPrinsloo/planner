@@ -226,12 +226,35 @@ async function loadData(){
   if(sqa)sqa.textContent='— '+sq.author;
 }
 
+function toMonKey(wkStr){
+  // Normalise any week key to its Monday date string
+  const base=new Date(wkStr+'T12:00:00');
+  const wd=base.getDay();
+  const diff=wd===0?1:wd===1?0:1-wd;
+  const mon=new Date(base);mon.setDate(base.getDate()+diff);
+  return isoDate(mon);
+}
+
 function getWeekBlocks(){
-  const wk=weekKey(weekOffset),dates=weekDates(weekOffset),expanded=[];
-  const dateStrs=dates.map(d=>isoDate(d)); // ["2026-03-16",..."2026-03-22"]
+  const wk=weekKey(weekOffset); // Monday-based
+  const dates=weekDates(weekOffset),expanded=[];
+  const dateStrs=dates.map(d=>isoDate(d));
+
+  // Build map: normalised Monday key → stored week keys (there may be multiple formats)
+  const storedWkMap={};
+  state.blocks.filter(b=>b.week).forEach(b=>{
+    const mk=toMonKey(b.week);
+    if(!storedWkMap[mk])storedWkMap[mk]=b.week; // store first encountered key for this Monday
+  });
+  // The stored key for this week (Sunday or Monday format)
+  const storedWk=storedWkMap[wk]||wk;
+
   state.blocks.forEach(b=>{
+    // Hide "other" activity on share page
+    if(b.activity==='other')return;
+
     if(b.week){
-      // Week-specific: use blockDateStr to find actual date regardless of key format
+      // Week-specific: match using blockDateStr regardless of key format
       const bds=blockDateStr(b);
       const di=dateStrs.indexOf(bds);
       if(di>=0)expanded.push({...b,dayIdx:di});
@@ -241,23 +264,27 @@ function getWeekBlocks(){
     if(!b.recur||b.recur==='none')return;
     if(b.recur==='weekly'){
       dates.forEach((d,di)=>{
-        if(di===b.dayIdx){
-          const oid=b.id+'__'+wk;
-          const over=state.blocks.find(x=>x.overrideOf===oid);
-          if(over)expanded.push({...over});
-          else if(!b.excludeWeeks||!b.excludeWeeks.includes(wk))
-            expanded.push({...b,week:wk,id:oid,dayIdx:di});
-        }
+        if(di!==b.dayIdx)return;
+        // Try both Monday and stored (Sunday) key formats for override lookup
+        const oidMon=b.id+'__'+wk;
+        const oidStored=b.id+'__'+storedWk;
+        const over=state.blocks.find(x=>x.overrideOf===oidMon||x.overrideOf===oidStored);
+        if(over){expanded.push({...over,dayIdx:di});return;}
+        // Check excludeWeeks with both key formats
+        const excl=b.excludeWeeks||[];
+        if(!excl.includes(wk)&&!excl.includes(storedWk))
+          expanded.push({...b,week:wk,id:oidMon,dayIdx:di});
       });
     }else if(b.recur==='custom'&&b.recurDays){
       dates.forEach((d,di)=>{
-        if(b.recurDays.includes(di)){
-          const oid=b.id+'__'+wk+'__'+di;
-          const over=state.blocks.find(x=>x.overrideOf===oid);
-          if(over)expanded.push({...over});
-          else if(!b.excludeWeeks||!b.excludeWeeks.includes(oid))
-            expanded.push({...b,week:wk,dayIdx:di,id:oid});
-        }
+        if(!b.recurDays.includes(di))return;
+        const oidMon=b.id+'__'+wk+'__'+di;
+        const oidStored=b.id+'__'+storedWk+'__'+di;
+        const over=state.blocks.find(x=>x.overrideOf===oidMon||x.overrideOf===oidStored);
+        if(over){expanded.push({...over,dayIdx:di});return;}
+        const excl=b.excludeWeeks||[];
+        if(!excl.includes(oidMon)&&!excl.includes(oidStored))
+          expanded.push({...b,week:wk,dayIdx:di,id:oidMon});
       });
     }
   });
