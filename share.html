@@ -200,7 +200,7 @@ async function loadData(){
     const rows=await r.json();
     if(rows&&rows.length&&rows[0]&&rows[0].data){
       const d=rows[0].data;
-      state={blocks:d.blocks||[],deadlines:d.deadlines||[]};
+      state={blocks:d.blocks||[],deadlines:d.deadlines||[],awayDays:d.awayDays||[]};
     }
     document.getElementById('sdot').className='status-dot';
     document.getElementById('stxt').textContent='Up to date';
@@ -265,6 +265,7 @@ function getWeekBlocks(){
     if(b.recur==='weekly'){
       dates.forEach((d,di)=>{
         if(di!==b.dayIdx)return;
+        console.log('Expanding recurring:', b.id, 'dayIdx:', b.dayIdx, 'wk:', wk, 'storedWk:', storedWk);
         // Try both Monday and stored (Sunday) key formats for override lookup
         const oidMon=b.id+'__'+wk;
         const oidStored=b.id+'__'+storedWk;
@@ -322,9 +323,12 @@ function renderGrid(dates){
   let html='<div class="gcorner"></div>';
   dates.forEach((d,i)=>{
     const tod=isToday(d);
-    html+=`<div class="ghead${tod?' today-head':''}">
+    const dk=isoDate(d);
+    const isAway=(state.awayDays||[]).includes(dk);
+    html+=`<div class="ghead${tod?' today-head':''}${isAway?' away-head':''}">
       <div class="ghead-name">${DAYS[i]}</div>
       <div class="ghead-date">${fmtDate(d)}</div>
+      ${isAway?'<div style="font-size:8px;color:#b07820;font-weight:600">✈ Away</div>':''}
     </div>`;
   });
 
@@ -336,7 +340,7 @@ function renderGrid(dates){
       const tod=isToday(d);
       const isBusy=(busyOccupied[di]||new Set()).has(slotIdx);
       const isTent=(tentOccupied[di]||new Set()).has(slotIdx);
-      const isFree=!isBusy&&!isTent&&h>=8&&h<=20;
+      const isFree=!isBusy&&!isTent&&(h>6||(h===6&&m===30))&&h<=20;
       const bgCls=isBusy?' busy-slot':isTent?' tent-slot':isFree?' free-slot':'';
 
       // Only render a block element if one STARTS here
@@ -352,7 +356,10 @@ function renderGrid(dates){
         inner=`<div class="${cls}"style="height:${hpx}px;z-index:4">${lbl}</div>`;
       }
 
-      html+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${bgCls}">${inner}</div>`;
+      const cellDk=isoDate(d);
+      const isCellAway=(state.awayDays||[]).includes(cellDk);
+      const awayStyle=isCellAway?'background:repeating-linear-gradient(45deg,rgba(180,120,40,.07) 0px,rgba(180,120,40,.07) 4px,transparent 4px,transparent 8px);':'';
+      html+=`<div class="gcell${isHalf?' half':''}${tod?' today-col':''}${bgCls}" style="${awayStyle}">${inner}</div>`;
     });
   });
   document.getElementById('grid').innerHTML=html;
@@ -579,6 +586,12 @@ function getBlocksForAnyDate(dateStr){
 }
 
 function buildSlotAvailability(dateStr){
+  // If away, all slots are unavailable
+  if((state.awayDays||[]).includes(dateStr)){
+    const busy=new Set();
+    for(let h=0;h<24;h++){busy.add(h*2);busy.add(h*2+1);}
+    return{busySlots:busy,tentSlots:new Set(),isAway:true};
+  }
   const dt=new Date(dateStr+'T00:00:00');
   const day=dt.getDay(),dayIdx=day===0?6:day-1;
   const wb=getBlocksForAnyDate(dateStr);
@@ -624,6 +637,11 @@ function selectSlotN(slotId,date,h,m,type){
   else if(slotId==='2'){selectedSlot3={date,h,m,type};renderSlots3();}
 }
 function selectSlot(date,h,m,type){
+  // Block booking on away days
+  if((state.awayDays||[]).includes(date)){
+    alert('Corné is away on this day — no bookings available.');
+    return;
+  }
   const dt=new Date(date+'T12:00:00');
   const day=dt.getDay();
   const isWeekend=day===0||day===6;
