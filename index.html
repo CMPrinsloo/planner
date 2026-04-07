@@ -279,6 +279,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .add-proj-btn{padding:10px;text-align:center;cursor:pointer;color:var(--info);font-size:12px;border-top:.5px solid var(--border2);}
 .add-proj-btn:hover{background:var(--bg2);}
 
+/* Finance tracker */
+.fin-entry{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:.5px solid var(--border);font-size:11px;}
+.fin-entry-name{flex:1;color:var(--text);}
+.fin-entry-cat{font-size:9px;color:var(--text3);background:var(--bg2);border-radius:8px;padding:1px 5px;}
+.fin-entry-amount{font-weight:600;flex-shrink:0;}
+.fin-entry-del{font-size:10px;color:var(--text3);cursor:pointer;opacity:0;padding:0 4px;}
+.fin-entry:hover .fin-entry-del{opacity:1;}
+.fin-summary-card{background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:10px 12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.fin-stat{text-align:center;}
+.fin-stat-num{font-size:17px;font-weight:700;}
+.fin-stat-lbl{font-size:9px;color:var(--text3);margin-top:2px;}
+.fin-cat-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;}
+.fin-cat-bar{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.fin-cat-fill{height:100%;border-radius:3px;background:var(--danger);}
+.fin-savings-bar{height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;margin-top:6px;}
+.fin-savings-fill{height:100%;border-radius:5px;background:var(--success);transition:width .4s;}
+
 /* Training plan */
 .train-session{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:8px;overflow:hidden;}
 .train-session-head{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;user-select:none;}
@@ -539,6 +556,7 @@ svg.sparkline{overflow:visible;}
     <button class="tab-btn" id="tab-mind" onclick="switchTab('mind')">🧠 Mind<span class="tab-notif" id="mind-notif" style="display:none"></span></button>
     <button class="tab-btn" id="tab-life" onclick="switchTab('life')">🌱 Life<span class="tab-notif" id="life-notif" style="display:none"></span></button>
     <button class="tab-btn" id="tab-fitness" onclick="switchTab('fitness')">🚴 Training</button>
+    <button class="tab-btn" id="tab-finance" onclick="switchTab('finance')">💰 Finance</button>
     <div class="sync-mini">
       <div class="sync-dot loading" id="sync-dot"></div>
       <span class="sync-txt" id="sync-txt">...</span>
@@ -624,6 +642,9 @@ svg.sparkline{overflow:visible;}
   <!-- Mind tab -->
   <div class="tab-content" id="content-mind">
     <div style="padding:10px 0">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn btn-p" onclick="openMindPrompt()">💡 Get a prompt</button>
+      </div>
       <div class="mind-grid" id="mind-grid"></div>
     </div>
   </div>
@@ -742,6 +763,40 @@ svg.sparkline{overflow:visible;}
         <div id="fit-volume"></div>
       </div>
     </details>
+  </div>
+</div>
+
+<!-- Finance tab -->
+<div class="tab-content" id="content-finance">
+  <div style="padding:10px 0">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">💰 Budget tracker</div>
+        <div style="font-size:10px;color:var(--text3)" id="fin-month-lbl"></div>
+      </div>
+      <button class="btn" onclick="chFinMonth(-1)">‹</button>
+      <button class="btn" onclick="chFinMonth(0)">This month</button>
+      <button class="btn" onclick="chFinMonth(1)">›</button>
+    </div>
+    <!-- Summary bar -->
+    <div id="fin-summary"></div>
+    <!-- Income + Expenses -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:6px">↑ Income</div>
+        <div id="fin-income-list"></div>
+        <button class="btn" style="width:100%;margin-top:5px;font-size:11px" onclick="addFinEntry('income')">+ Add income</button>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--danger);margin-bottom:6px">↓ Expenses</div>
+        <div id="fin-expense-list"></div>
+        <button class="btn" style="width:100%;margin-top:5px;font-size:11px" onclick="addFinEntry('expense')">+ Add expense</button>
+      </div>
+    </div>
+    <!-- Savings goal -->
+    <div id="fin-savings" style="margin-top:12px"></div>
+    <!-- Category breakdown -->
+    <div id="fin-categories" style="margin-top:12px"></div>
   </div>
 </div>
 
@@ -869,7 +924,7 @@ async function loadSB(){
         projects:d.projects||[],customActivities:d.customActivities||[],
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
-        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},trainLogs:d.trainLogs||{},trainingPlans:d.trainingPlans||[],
+        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},trainLogs:d.trainLogs||{},trainingPlans:d.trainingPlans||[],mindPrompts:d.mindPrompts||null,finData:d.finData||{},
         customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
@@ -1277,7 +1332,7 @@ function renderProjects(){
       </div>
       <div class="prog-label">
         <span>Progress${isManual?' <span style="font-size:9px;color:var(--text3)">(manual)</span>':''}</span>
-        <span>${prog}%
+        <span><span id="ps-label-${esc(p.id)}">${prog}</span>%
           ${isManual?`<span style="font-size:9px;color:var(--info);cursor:pointer;margin-left:4px"onclick="clearManualProg('${p.id}')">auto</span>`:''}
         </span>
       </div>
@@ -1392,7 +1447,10 @@ function saveMindLog(date,actId){
   if(!state.mindLogs)state.mindLogs=[];
   // Remove existing for this date/act
   state.mindLogs=state.mindLogs.filter(l=>!(l.date===date&&l.actId===actId));
-  const mins=parseInt(document.getElementById('mind-mins').value)||0;
+  const _minsEl=document.getElementById('mind-mins');
+  const _act=MIND_ACTS.find(a=>a.id===actId);
+  const _target=(state.mindMins||{})[actId]||(_act?_act.defaultMin:15);
+  const mins=_minsEl&&_minsEl.value.trim()?parseInt(_minsEl.value):_target;
   const checked=document.getElementById('mind-checked').value==='1';
   const note=document.getElementById('mind-note').value.trim();
   if(mins||checked){
@@ -1532,8 +1590,15 @@ function moveMs(pid,mi,dir){
   sched();renderProjects();
 }
 function updateProg(id,val){
+  const v=parseInt(val);
   const p=state.projects.find(x=>x.id===id);
-  if(p){p.manualProgress=parseInt(val);sched();}
+  if(p){
+    p.manualProgress=v;
+    // Update the % label live
+    const ps=document.getElementById('ps-label-'+id);
+    if(ps)ps.textContent=v+'%';
+    sched();
+  }
   const pf=document.getElementById('pf-'+id);if(pf)pf.style.width=val+'%';
 }
 function clearManualProg(id){
@@ -2591,7 +2656,8 @@ async function fetchBookings(){
   try{
     const r=await fetch(SB_BOOK+'/rest/v1/booking_requests?order=created_at.desc&limit=50',{headers:SB_BH});
     if(!r.ok)return;
-    bookingRequests=await r.json();
+    const _allReqs=await r.json();
+    bookingRequests=_allReqs.filter(r=>r.status!=='cleared');
 
     // Show bell for ALL unresolved requests (pending + approved-not-yet-added)
     const processed=JSON.parse(localStorage.getItem('processed_bookings')||'[]');
@@ -2622,10 +2688,13 @@ function parseAlternatives(r){
 
 async function clearDeclined(){
   const declined=bookingRequests.filter(r=>r.status==='declined');
-  if(!declined.length)return;
+  if(!declined.length){showToast('No declined requests to clear');return;}
+  // Mark as 'cleared' (DELETE may be blocked by RLS; this always works)
   await Promise.all(declined.map(r=>
     fetch(SB_BOOK+'/rest/v1/booking_requests?id=eq.'+r.id,{
-      method:'DELETE',headers:SB_BH
+      method:'PATCH',
+      headers:{...SB_BH,'Prefer':'return=minimal'},
+      body:JSON.stringify({status:'cleared'})
     })
   ));
   await fetchBookings();renderInbox();
@@ -2956,13 +3025,13 @@ function updateTabNotifs(){
 const LIFE_ROWS=[
   {id:'moment',  label:'Moment of day', type:'text',    icon:'✨'},
   {id:'mood',    label:'Mood',          type:'mood',    icon:'😊'},
-  {id:'sleep',   label:'Sleep (hrs)',   type:'number',  icon:'😴', sparkline:true},
-  {id:'weight',  label:'Weight (kg)',   type:'number',  icon:'⚖️'},
+  {id:'sleep',   label:'Sleep',         type:'number',  icon:'😴', unit:'hrs', sparkline:true},
+  {id:'weight',  label:'Weight',        type:'number',  icon:'⚖️', unit:'kg'},
   {id:'exercise',label:'Exercise',      type:'check',   icon:'🏃'},
   {id:'prayed',  label:'Prayed',        type:'check',   icon:'🙏'},
   {id:'bible',   label:'Bible',         type:'check',   icon:'📖'},
-  {id:'screen',  label:'Screen time',   type:'number',  icon:'📱'},
-  {id:'work',    label:'Work hrs',      type:'auto',    icon:'💼'},
+  {id:'screen',  label:'Screen time',   type:'number',  icon:'📱', unit:'hrs', sparkline2:true},
+  {id:'work',    label:'Work hrs',      type:'workhrs', icon:'💼', unit:'hrs', sparkline2:true},
 ];
 
 function chLifeWk(d){
@@ -2984,15 +3053,17 @@ function getWorkHrsForDate(date){
   const blocks=state.blocks.filter(b=>{
     if(b.status!=='done')return false;
     if(b.week===wk&&b.dayIdx===di)return true;
-    // Check recurring
     if(!b.week&&b.recur&&b.recur!=='none'){
       if(b.recur==='weekly'&&b.dayIdx===di)return true;
       if(b.recur==='custom'&&b.recurDays&&b.recurDays.includes(di))return true;
     }
     return false;
   });
-  const hrs=blocks.reduce((s,b)=>s+(b.actualHours!=null?b.actualHours:(b.duration||1)),0);
-  return Math.round(hrs*10)/10;
+  const autoHrs=blocks.reduce((s,b)=>s+(b.actualHours!=null?b.actualHours:(b.duration||1)),0);
+  // Add manual hours from lifeLog
+  const entry=getLifeEntry(date);
+  const manualHrs=entry.workManual||0;
+  return Math.round((autoHrs+manualHrs)*10)/10;
 }
 
 function renderLifeTracker(){
@@ -3030,22 +3101,62 @@ function renderLifeTracker(){
         const lbl=val===true?'✓':val===false?'✕':'—';
         html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="cycleLifeCheck('${dk}','${row.id}')">${lbl}</div></td>`;
       } else if(row.type==='mood'){
-        const moodLabels={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
+        const moodLabels={1:'😞 1',2:'😕 2',3:'😐 3',4:'🙂 4',5:'😄 5'};
+        const moodEmoji={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
         const cls=val?`life-mood-${val}`:'';
-        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" onclick="cycleMood('${dk}')">${val?moodLabels[val]:'—'}</div></td>`;
-      } else if(row.type==='auto'){
-        const autoVal=getWorkHrsForDate(dk);
-        html+=`<td><div class="life-cell${autoVal?'':' empty'}${tod?' today-cell':''}" style="cursor:default" title="Auto from done blocks">${autoVal?autoVal+'h':'—'}</div></td>`;
+        const opts=[1,2,3,4,5].map(n=>`<option value="${n}"${val==n?' selected':''}>${moodLabels[n]}</option>`).join('');
+        html+=`<td><div class="life-cell ${cls}${tod?' today-cell':''}" style="padding:0">
+          <select style="width:100%;height:100%;border:none;background:transparent;font-size:11px;cursor:pointer;text-align:center" onchange="saveLifeMood('${dk}',this.value)">
+            <option value="">—</option>${opts}
+          </select></div></td>`;
+      } else if(row.type==='workhrs'){
+        const totalWork=getWorkHrsForDate(dk);
+        const entry2=getLifeEntry(dk);
+        const manualPart=entry2.workManual||0;
+        const cellId2=`lc-${dk}-${row.id}`;
+        html+=`<td><div class="life-cell${totalWork?'':' empty'}${tod?' today-cell':''}" id="${cellId2}" onclick="inlineNum(this,'${dk}','workManual')" title="Auto work hrs + manual. Click to add manual.">${totalWork?totalWork+'h':'—'}${manualPart?`<span style="font-size:7px;color:var(--text3)"> (+${manualPart})</span>`:''}</div></td>`;
       } else if(row.sparkline){
-        // Sleep: inline number input on click
-        html+=`<td><div class="life-cell${val?'filled':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val+'h':'—'}</div></td>`;
+        const unit=row.unit||'';
+        html+=`<td><div class="life-cell${val!=null?'':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val+unit:'—'}</div></td>`;
       } else {
-        // Generic number: inline input on click
-        html+=`<td><div class="life-cell${val?'filled':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val:'—'}</div></td>`;
+        const unit=row.unit||'';
+        html+=`<td><div class="life-cell${val!=null?'':' empty'}${tod?' today-cell':''}" id="${cellId}" onclick="inlineNum(this,'${dk}','${row.id}')">${val!=null?val+unit:'—'}</div></td>`;
       }
     });
     html+=`</tr>`;
   });
+
+  // Helper: render a sparkline row
+  function makeSparkline(label, vals, color, unit){
+    const valid=vals.filter(v=>v!==null);
+    if(valid.length<2)return'';
+    const svgW=600,svgH=52,padL=8,padR=8,padT=8,padB=16;
+    const colW=(svgW-padL-padR)/(dates.length-1);
+    const minV=Math.max(0,Math.min(...valid)-0.5);
+    const maxV=Math.max(...valid)+0.5;
+    const yScale=(svgH-padT-padB)/(maxV-minV||1);
+    const pts=vals.map((v,i)=>v!==null?{x:padL+i*colW,y:svgH-padB-(v-minV)*yScale,v}:null);
+    let pathD='';pts.forEach(p=>{if(p)pathD+=(pathD?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1);});
+    const dots=pts.filter(p=>p).map(p=>`
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/>
+      <text x="${p.x.toFixed(1)}" y="${(svgH-2).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--text3)">${p.v}${unit}</text>
+    `).join('');
+    const avg=(valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1);
+    const avgY=(svgH-padB-(avg-minV)*yScale).toFixed(1);
+    return`<tr><td class="row-label" style="font-size:10px;color:var(--text2)">${label}<br><span style="font-size:9px;color:var(--text3)">avg ${avg}${unit}</span></td>
+      <td colspan="${dates.length}" style="padding:4px 8px">
+        <svg width="100%" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="overflow:visible">
+          <line x1="${padL}" y1="${avgY}" x2="${svgW-padR}" y2="${avgY}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 3"/>
+          ${pathD?`<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:''}
+          ${dots}
+        </svg>
+      </td></tr>`;
+  }
+
+  // Screen time trend
+  const screenVals=dates.map(d=>parseFloat(getLifeEntry(isoDate(d)).screen)||null);
+  // Work hours trend
+  const workVals=dates.map(d=>getWorkHrsForDate(isoDate(d))||null);
 
   // Sleep sparkline — full width chart row
   const validSleep=sleepVals.filter(v=>v!==null);
@@ -3076,6 +3187,9 @@ function renderLifeTracker(){
         </svg>
       </td></tr>`;
   }
+  // Screen time and work hour trends
+  html+=makeSparkline('📱 Screen trend',screenVals,'var(--warn)','h');
+  html+=makeSparkline('💼 Work trend',workVals,'var(--success)','h');
   html+=`</tbody></table>`;
 
   document.getElementById('life-table-wrap').innerHTML=html;
@@ -3109,6 +3223,13 @@ function cycleMood(date){
   let entry=state.lifeLog.find(l=>l.date===date);
   if(!entry){entry={date};state.lifeLog.push(entry);}
   entry.mood=entry.mood?entry.mood%5+1:1;
+  sched();renderLifeTracker();
+}
+function saveLifeMood(date,val){
+  if(!state.lifeLog)state.lifeLog=[];
+  let entry=state.lifeLog.find(l=>l.date===date);
+  if(!entry){entry={date};state.lifeLog.push(entry);}
+  if(val)entry.mood=parseInt(val);else delete entry.mood;
   sched();renderLifeTracker();
 }
 
@@ -3292,7 +3413,7 @@ function editFitSession(id){
 function renderSessionModal(type,existing,prefillDate){
   const today=prefillDate||localDateStr(new Date());
   const GYM_TYPES=['Upper Body','Lower Body','Push','Pull','Legs','Core','Full Body','Cardio Mix','HIIT','Other'];
-  const CARDIO_TYPES_LIST=['Running','Treadmill','Rowing','Stairmaster','Elliptical','Assault Bike','Jump Rope','Cross-trainer','Swimming','Other'];
+  const CARDIO_TYPES_LIST=['Running','Treadmill','Rowing Machine','Ski Erg','Stairmaster','Elliptical','Assault Bike','Jump Rope','Cross-trainer','Swimming','Other'];
   document.getElementById('m2title').textContent=(existing?'Edit ':'Log ')+(type==='gym'?'Fitness session 🏋️':type==='cycling'?'Cycling 🚴':'Cardio 🏃');
   if(type==='gym'){
     const typeOpts=[''].concat(GYM_TYPES).map(t=>`<option value="${t}"${existing?.sessionType===t?' selected':''}>${t||'— select type —'}</option>`).join('');
@@ -3521,7 +3642,7 @@ function getPlanWeeks(plan){
 
 function switchTab(tab){
   currentTab=tab;
-  ['planner','mind','life','fitness'].forEach(t=>{
+  ['planner','mind','life','fitness','finance'].forEach(t=>{
     const btn=document.getElementById('tab-'+t);
     const cnt=document.getElementById('content-'+t);
     if(btn)btn.classList.toggle('active',t===tab);
@@ -3530,6 +3651,7 @@ function switchTab(tab){
   if(tab==='mind')renderMind(weekDates(weekOffset));
   if(tab==='life')renderLifeTracker();
   if(tab==='fitness')renderTraining();
+  if(tab==='finance')renderFinance();
 }
 
 function setTrainWeek(w){
@@ -3574,13 +3696,18 @@ function renderTraining(){
       const badgeClass = `train-type-${typeKey}`;
       const badgeLabel = typeKey==='cycling'?'🚴 Cycling':typeKey==='rest'?'Rest':'🏋️ Gym';
 
-      const loggedBadge = isLogged ? `<div class="train-logged">✓ Logged · Feeling ${log.feeling||'?'}/10${log.watts?` · ${log.watts}W`:''}</div>` : '';
+      const loggedBadge = isLogged ? `<div class="train-logged">✓ Logged · Feeling ${log.feeling||'?'}/10${log.vol?` · ${Math.round(log.vol).toLocaleString()}kg vol`:log.watts?` · ${log.watts}W`:''}${log.dist?` · ${log.dist}km`:''}</div>` : '';
 
       const logForm = `
         <div class="train-log-grid">
-          <div class="frow"><label>Ave Watts</label><input id="tw-${logKey}-watts" type="number" step="1" min="0" value="${esc(String(log?.watts||''))}" placeholder="—"></div>
+          ${s.type.toLowerCase().includes('gym')||s.type.toLowerCase().includes('push')||s.type.toLowerCase().includes('pull')||s.type.toLowerCase().includes('leg')||s.type.toLowerCase().includes('hyrox')?
+            `<div class="frow"><label>Total vol (kg)</label><input id="tw-${logKey}-vol" type="number" step="1" min="0" value="${esc(String(log?.vol||''))}" placeholder="e.g. 4500"></div>` :
+            `<div class="frow"><label>Ave Watts</label><input id="tw-${logKey}-watts" type="number" step="1" min="0" value="${esc(String(log?.watts||''))}" placeholder="—"></div>`}
           <div class="frow"><label>Ave HR (bpm)</label><input id="tw-${logKey}-hr" type="number" step="1" min="0" value="${esc(String(log?.hr||''))}" placeholder="—"></div>
-          <div class="frow"><label>Max HR (bpm)</label><input id="tw-${logKey}-maxhr" type="number" step="1" min="0" value="${esc(String(log?.maxhr||''))}" placeholder="—"></div>
+          ${s.type.toLowerCase().includes('cycling')||s.type.toLowerCase().includes('ride')?
+            `<div class="frow"><label>Distance (km)</label><input id="tw-${logKey}-dist" type="number" step="0.1" min="0" value="${esc(String(log?.dist||''))}" placeholder="—"></div>
+             <div class="frow"><label>Elevation (m)</label><input id="tw-${logKey}-elev" type="number" step="1" min="0" value="${esc(String(log?.elev||''))}" placeholder="—"></div>` :
+            `<div class="frow"><label>Max HR (bpm)</label><input id="tw-${logKey}-maxhr" type="number" step="1" min="0" value="${esc(String(log?.maxhr||''))}" placeholder="—"></div>`}
           <div class="frow"><label>Actual duration</label><input id="tw-${logKey}-dur" value="${esc(String(log?.dur||''))}" placeholder="e.g. 75 min"></div>
         </div>
         <div class="frow" style="margin-top:6px"><label>Feeling (1–10)</label>
@@ -3648,6 +3775,9 @@ function saveTrainLog(logKey){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():null;};
   const log={
     watts:parseFloat(g(`tw-${logKey}-watts`))||null,
+    vol:parseFloat(g(`tw-${logKey}-vol`))||null,
+    dist:parseFloat(g(`tw-${logKey}-dist`))||null,
+    elev:parseFloat(g(`tw-${logKey}-elev`))||null,
     hr:parseFloat(g(`tw-${logKey}-hr`))||null,
     maxhr:parseFloat(g(`tw-${logKey}-maxhr`))||null,
     dur:g(`tw-${logKey}-dur`)||null,
@@ -3839,6 +3969,272 @@ function exportTrainReport(){
   a.download='training-report-'+new Date().toISOString().slice(0,10)+'.txt';
   a.click();URL.revokeObjectURL(a.href);
   showToast('Report exported');
+}
+
+
+// ── Mind Reclamation Prompts ──────────────────────────────
+const MIND_PROMPTS = {"think": ["If you had infinite resources but only 10 years left, what would you build?", "What belief do you hold that most people around you would disagree with?", "What is the difference between wisdom and intelligence?", "If you stripped away all external expectations, what would you actually want from your life?", "What recurring problem in the world do you think about solving?", "What does 'enough' look like to you — financially, professionally, personally?", "If your 80-year-old self could give you one piece of advice right now, what would it be?", "What are you optimising for without realising it?", "What would you regret NOT doing more than doing?", "How would you explain your field to a 10-year-old in 3 sentences?"], "write": ["Write about a moment this week where you felt most like yourself.", "Describe your ideal ordinary Tuesday, five years from now.", "What are you most grateful for today, and why does it matter?", "Write a letter to someone you haven't thanked properly.", "What would you tell your 16-year-old self?", "Describe a problem you're sitting with — just getting it out of your head.", "What does success look like for you right now, not in general?", "Write about something that surprised you recently.", "What are three things you want to remember about this season of your life?", "What are you avoiding thinking about?"], "read": ["Meditations by Marcus Aurelius — Book IV, sections 3–7", "Proverbs 3 — wisdom about trust and discernment", "The last chapter of whatever book you're currently reading", "One long-form article you've been saving", "A paper or study in your research area", "Something your past self bookmarked but never read", "Ecclesiastes 3 — 'a time for everything'", "One chapter of a biography of someone you admire", "A technical paper in aerodynamics or UAV design", "Something in Afrikaans — poetry, news, or prose"]};
+
+function getActivePrompts(){
+  // Use imported prompts if available, else fall back to built-in
+  const imported=state.mindPrompts;
+  if(imported&&Object.keys(imported).length)return imported;
+  return MIND_PROMPTS;
+}
+
+function openMindPrompt(forceType){
+  const prompts=getActivePrompts();
+  const types=Object.keys(prompts).filter(t=>prompts[t]&&prompts[t].length);
+  if(!types.length){showToast('No prompts available');return;}
+  const typeLabels={think:'💭 Think about this',write:'✍️ Write about this',read:'📖 Read this'};
+  const type=forceType||types[Math.floor(Math.random()*types.length)];
+  const list=prompts[type]||[];
+  const prompt=list[Math.floor(Math.random()*list.length)]||'No prompts in this category';
+  const isImported=!!(state.mindPrompts&&Object.keys(state.mindPrompts).length);
+  const COPY_PROMPT=`I need a fresh set of mind reclamation prompts for my personal planner. Please generate a JSON object with this exact structure:\n\n{"think":["prompt1","prompt2",...],"write":["prompt1",...],"read":["prompt1",...]}\n\nEach array should have 10 entries. Context about me:\n- Mechatronic engineering postgrad at Stellenbosch University\n- Cyclist (training for Desert Dash Namibia)\n- Christian\n- Studying CFA Level I\n- Interested in UAV aerodynamics, entrepreneurship, wine culture\n- Current date: ${new Date().toLocaleDateString('en-ZA',{day:'numeric',month:'long',year:'numeric'})}\n\nFor 'think': thought-provoking questions about life, work, faith, engineering, the future\nFor 'write': journaling/reflection prompts relevant to my current season\nFor 'read': specific books, chapters, articles, papers worth reading\n\nReturn ONLY the JSON, no explanation.`;
+
+  document.getElementById('m2title').textContent='Mind prompt';
+  document.getElementById('m2body').innerHTML=`
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${typeLabels[type]||type}</div>
+    <div id="prompt-display" style="font-size:14px;color:var(--text);line-height:1.6;padding:12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:10px">"${esc(prompt)}"</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn btn-p" style="flex:1" onclick="openMindPrompt()">↻ Random</button>
+      ${types.map(t=>`<button class="btn" onclick="openMindPrompt('${t}')">${typeLabels[t]||t}</button>`).join('')}
+    </div>
+    <div style="border-top:.5px solid var(--border2);padding-top:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">📋 Manage prompt list</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px">${isImported?'Using imported list ('+Object.values(state.mindPrompts||{}).reduce((n,a)=>n+a.length,0)+' prompts)':'Using built-in list — import your own below'}</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="btn" onclick="document.getElementById('prompt-import-input').click()">📂 Import JSON</button>
+        <input type="file" id="prompt-import-input" accept=".json,.txt" style="display:none" onchange="importMindPrompts(event)">
+        ${isImported?'<button class="btn" style="color:var(--danger)" onclick="clearMindPrompts()">✕ Reset to built-in</button>':''}
+        <button class="btn" onclick="exportMindPrompts()">📤 Export current</button>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:8px;font-size:10px;color:var(--text3)">
+        <div style="font-weight:600;color:var(--text2);margin-bottom:4px">💬 Get a fresh list from Claude</div>
+        <div style="margin-bottom:6px;line-height:1.5">Copy the prompt below, paste it to Claude, then import the JSON it gives you.</div>
+        <textarea readonly style="width:100%;height:80px;font-size:9px;background:var(--bg);border:.5px solid var(--border2);border-radius:4px;padding:4px;color:var(--text2);resize:none" onclick="this.select()">${esc(COPY_PROMPT)}</textarea>
+        <button class="btn" style="margin-top:4px;font-size:10px" onclick="navigator.clipboard.writeText(${JSON.stringify(COPY_PROMPT)}).then(()=>showToast('Prompt copied!'))">📋 Copy to clipboard</button>
+      </div>
+    </div>
+    <div class="mactions"><button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Close</button></div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function importMindPrompts(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.think&&!data.write&&!data.read)throw new Error('JSON must have think/write/read arrays');
+      state.mindPrompts=data;
+      sched();
+      showToast('Prompts imported: '+Object.values(data).reduce((n,a)=>n+a.length,0)+' prompts');
+      openMindPrompt(); // refresh display
+    }catch(err){alert('Import failed: '+err.message);}
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function clearMindPrompts(){
+  delete state.mindPrompts;
+  sched();openMindPrompt();
+  showToast('Reset to built-in prompts');
+}
+
+function exportMindPrompts(){
+  const prompts=getActivePrompts();
+  const blob=new Blob([JSON.stringify(prompts,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='mind-prompts-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+function openMindPromptByType(type){
+  const typeLabels={think:'💭 Think about this',write:'✍️ Write about this',read:'📖 Read this'};
+  const list=MIND_PROMPTS[type];
+  const prompt=list[Math.floor(Math.random()*list.length)];
+  const res=document.querySelector('#mbg2 .modal-sub, #m2body');
+  if(res){
+    const pEl=res.querySelector('div[style*="font-size:14px"]');
+    if(pEl)pEl.textContent='"'+prompt+'"';
+    const lEl=res.querySelector('div[style*="font-weight:600"]');
+    if(lEl)lEl.textContent=typeLabels[type];
+  }
+}
+
+// getAIPrompt removed — using importable list instead
+
+// ── Finance tracker ──────────────────────────────────────
+let finMonthOffset = 0;
+
+const FIN_CATEGORIES = [
+  'Housing','Food & Groceries','Transport','Health & Gym','Education',
+  'Entertainment','Clothing','Savings','Investment','Utilities','Personal','Other'
+];
+
+function chFinMonth(d){ finMonthOffset = d===0?0:finMonthOffset+d; renderFinance(); }
+
+function getFinMonth(){
+  const now = new Date();
+  now.setDate(1);
+  now.setMonth(now.getMonth()+finMonthOffset);
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getFinData(){
+  if(!state.finData)state.finData={};
+  const mk = getFinMonth();
+  if(!state.finData[mk])state.finData[mk]={income:[],expenses:[],savingsGoal:null};
+  return state.finData[mk];
+}
+
+function renderFinance(){
+  const lbl = document.getElementById('fin-month-lbl');
+  const mk = getFinMonth();
+  const [y,m] = mk.split('-');
+  const monthName = new Date(parseInt(y),parseInt(m)-1,1).toLocaleDateString('en-ZA',{month:'long',year:'numeric'});
+  if(lbl) lbl.textContent = monthName;
+
+  const data = getFinData();
+  const income = data.income||[];
+  const expenses = data.expenses||[];
+  const totalIncome = income.reduce((s,e)=>s+e.amount,0);
+  const totalExpenses = expenses.reduce((s,e)=>s+e.amount,0);
+  const net = totalIncome - totalExpenses;
+  const savingsRate = totalIncome>0 ? Math.round((net/totalIncome)*100) : 0;
+
+  // Summary
+  const sumEl = document.getElementById('fin-summary');
+  if(sumEl) sumEl.innerHTML = `<div class="fin-summary-card">
+    <div class="fin-stat">
+      <div class="fin-stat-num" style="color:var(--success)">R${totalIncome.toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+      <div class="fin-stat-lbl">Income</div>
+    </div>
+    <div class="fin-stat">
+      <div class="fin-stat-num" style="color:var(--danger)">R${totalExpenses.toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+      <div class="fin-stat-lbl">Expenses</div>
+    </div>
+    <div class="fin-stat">
+      <div class="fin-stat-num" style="color:${net>=0?'var(--success)':'var(--danger)'}">${net>=0?'+':''}R${Math.abs(net).toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+      <div class="fin-stat-lbl">Net · ${savingsRate}% saved</div>
+    </div>
+  </div>`;
+
+  // Income list
+  const incEl = document.getElementById('fin-income-list');
+  if(incEl) incEl.innerHTML = income.length
+    ? income.map((e,i)=>`<div class="fin-entry">
+        <div class="fin-entry-name">${esc(e.name)}</div>
+        <span class="fin-entry-cat">${esc(e.category||'')}</span>
+        <div class="fin-entry-amount" style="color:var(--success)">R${e.amount.toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+        <span class="fin-entry-del" onclick="deleteFinEntry('income',${i})">✕</span>
+      </div>`).join('')
+    : '<div style="font-size:11px;color:var(--text3);padding:6px 0">No income added</div>';
+
+  // Expenses list
+  const expEl = document.getElementById('fin-expense-list');
+  if(expEl) expEl.innerHTML = expenses.length
+    ? expenses.map((e,i)=>`<div class="fin-entry">
+        <div class="fin-entry-name">${esc(e.name)}</div>
+        <span class="fin-entry-cat">${esc(e.category||'')}</span>
+        <div class="fin-entry-amount" style="color:var(--danger)">R${e.amount.toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+        <span class="fin-entry-del" onclick="deleteFinEntry('expense',${i})">✕</span>
+      </div>`).join('')
+    : '<div style="font-size:11px;color:var(--text3);padding:6px 0">No expenses added</div>';
+
+  // Savings goal
+  const savEl = document.getElementById('fin-savings');
+  if(savEl){
+    const goal = data.savingsGoal;
+    const saved = Math.max(0,net);
+    const pct = goal ? Math.min(100,Math.round((saved/goal)*100)) : 0;
+    savEl.innerHTML = `<div style="background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="font-size:11px;font-weight:600;color:var(--text);flex:1">🎯 Savings goal</div>
+        <button class="btn" style="font-size:10px;padding:2px 8px" onclick="setFinGoal()">
+          ${goal?'R'+goal.toLocaleString('en-ZA',{minimumFractionDigits:0})+' ✎':'Set goal'}
+        </button>
+      </div>
+      ${goal ? `
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">
+          R${saved.toLocaleString('en-ZA',{minimumFractionDigits:0})} of R${goal.toLocaleString('en-ZA',{minimumFractionDigits:0})} — ${pct}%
+        </div>
+        <div class="fin-savings-bar"><div class="fin-savings-fill" style="width:${pct}%"></div></div>
+      ` : '<div style="font-size:10px;color:var(--text3)">Set a monthly savings target to track progress</div>'}
+    </div>`;
+  }
+
+  // Category breakdown
+  const catEl = document.getElementById('fin-categories');
+  if(catEl && expenses.length){
+    const catTotals = {};
+    expenses.forEach(e=>{ catTotals[e.category||'Other'] = (catTotals[e.category||'Other']||0)+e.amount; });
+    const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    const max = sorted[0]?.[1]||1;
+    catEl.innerHTML = `<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Expense breakdown</div>`
+      + sorted.map(([cat,amt])=>`<div class="fin-cat-row">
+          <div style="width:90px;flex-shrink:0">${esc(cat)}</div>
+          <div class="fin-cat-bar"><div class="fin-cat-fill" style="width:${Math.round((amt/max)*100)}%"></div></div>
+          <div style="width:70px;text-align:right;font-weight:600;flex-shrink:0">R${amt.toLocaleString('en-ZA',{minimumFractionDigits:0})}</div>
+          <div style="font-size:9px;color:var(--text3);width:32px;text-align:right">${totalExpenses?Math.round((amt/totalExpenses)*100):0}%</div>
+        </div>`).join('');
+  } else if(catEl){
+    catEl.innerHTML = '';
+  }
+}
+
+function addFinEntry(type){
+  const catOpts = FIN_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('m2title').textContent = type==='income'?'Add income':'Add expense';
+  document.getElementById('m2body').innerHTML = `
+    <div class="frow"><label>Description</label><input id="fin-name" placeholder="e.g. ${type==='income'?'Salary':'Rent'}"></div>
+    <div class="frow"><label>Amount (R)</label><input id="fin-amount" type="number" step="0.01" min="0" placeholder="0.00"></div>
+    <div class="frow"><label>Category</label>
+      <select id="fin-cat">${catOpts}</select>
+    </div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveFinEntry('${type}')">Add</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function saveFinEntry(type){
+  const name = document.getElementById('fin-name')?.value.trim();
+  const amount = parseFloat(document.getElementById('fin-amount')?.value)||0;
+  const category = document.getElementById('fin-cat')?.value||'Other';
+  if(!name||!amount){showToast('Enter a name and amount');return;}
+  const data = getFinData();
+  if(type==='income') data.income.push({name,amount,category});
+  else data.expenses.push({name,amount,category});
+  if(!state.finData) state.finData={};
+  state.finData[getFinMonth()] = data;
+  sched(); document.getElementById('mbg2').style.display='none'; renderFinance();
+}
+
+function deleteFinEntry(type,idx){
+  const data = getFinData();
+  if(type==='income') data.income.splice(idx,1);
+  else data.expenses.splice(idx,1);
+  if(!state.finData) state.finData={};
+  state.finData[getFinMonth()] = data;
+  sched(); renderFinance();
+}
+
+function setFinGoal(){
+  const data = getFinData();
+  const current = data.savingsGoal||'';
+  const val = prompt('Set monthly savings goal (R):', current);
+  if(val===null) return;
+  const num = parseFloat(val)||null;
+  data.savingsGoal = num;
+  if(!state.finData) state.finData={};
+  state.finData[getFinMonth()] = data;
+  sched(); renderFinance();
 }
 
 loadSB();

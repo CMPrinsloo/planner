@@ -239,6 +239,9 @@ function getWeekBlocks(){
   const wk=weekKey(weekOffset); // Monday-based
   const dates=weekDates(weekOffset),expanded=[];
   const dateStrs=dates.map(d=>isoDate(d));
+  const recurMasters=state.blocks.filter(b=>!b.week&&b.recur&&b.recur!=='none');
+  console.log('Total blocks:', state.blocks.length, '| Recurring masters:', recurMasters.length, '| wk:', wk);
+  recurMasters.forEach(b=>console.log('  Master:', b.id, 'title:', b.title||b.activity, 'recur:', b.recur, 'dayIdx:', b.dayIdx));
 
   // Build map: normalised Monday key → stored week keys (there may be multiple formats)
   const storedWkMap={};
@@ -265,7 +268,7 @@ function getWeekBlocks(){
     if(b.recur==='weekly'){
       dates.forEach((d,di)=>{
         if(di!==b.dayIdx)return;
-        console.log('Expanding recurring:', b.id, 'dayIdx:', b.dayIdx, 'wk:', wk, 'storedWk:', storedWk);
+        console.log('Recurring weekly block:', b.id, 'title:', b.title||b.activity, 'dayIdx:', b.dayIdx, 'matching di:', di, 'recur:', b.recur);
         // Try both Monday and stored (Sunday) key formats for override lookup
         const oidMon=b.id+'__'+wk;
         const oidStored=b.id+'__'+storedWk;
