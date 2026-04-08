@@ -570,7 +570,7 @@ svg.sparkline{overflow:visible;}
       <button class="btn" onclick="document.getElementById('json-imp').click()">📂 Import JSON</button>
       <input type="file" id="json-imp" accept=".json" style="display:none" onchange="importJSON(event)">
       <button class="btn" onclick="manageCategories()">🎨 Categories</button>
-      <button class="btn" onclick="showReview()">📊 Review</button>
+      <button class="btn" onclick="openWeeklyReview()">📊 Review</button>
       <button class="btn" onclick="exportICS()">📅 .ics</button>
     </div>
   </div>
@@ -663,6 +663,22 @@ svg.sparkline{overflow:visible;}
         💼 Work hours auto-populate from blocks you mark as <strong>Done</strong> in the Planner tab.
         Tap number cells to edit inline. Tap mood to cycle through. Tap checkboxes to toggle.
       </div>
+    </div>
+    <!-- Goal tracker -->
+    <div style="margin-top:4px;padding:10px 10px 0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--text);flex:1">🎯 Goals</div>
+        <button class="btn btn-p" onclick="openAddGoal()">+ Add goal</button>
+      </div>
+      <div id="goals-body"></div>
+    </div>
+    <!-- Personal CRM -->
+    <div style="margin-top:4px;padding:10px 10px 10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--text);flex:1">👥 Relationships</div>
+        <button class="btn btn-p" onclick="openAddCRM()">+ Add</button>
+      </div>
+      <div id="crm-body"></div>
     </div>
   </div>
 </div>
@@ -795,6 +811,10 @@ svg.sparkline{overflow:visible;}
     </div>
     <!-- Savings goal -->
     <div id="fin-savings" style="margin-top:12px"></div>
+    <!-- Subscriptions -->
+    <div style="margin-top:10px">
+      <button class="btn" style="width:100%;font-size:11px" onclick="openSubscriptions()">📋 Manage subscriptions</button>
+    </div>
     <!-- Category breakdown -->
     <div id="fin-categories" style="margin-top:12px"></div>
   </div>
@@ -924,7 +944,7 @@ async function loadSB(){
         projects:d.projects||[],customActivities:d.customActivities||[],
         activityOverrides:d.activityOverrides||{},
         unplannedLogs:d.unplannedLogs||[],closedDays:d.closedDays||[],
-        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},trainLogs:d.trainLogs||{},trainingPlans:d.trainingPlans||[],mindPrompts:d.mindPrompts||null,finData:d.finData||{},
+        mindLogs:d.mindLogs||[],mindMins:d.mindMins||{},catOrder:d.catOrder||[],fitSessions:d.fitSessions||[],fitPRs:d.fitPRs||{},activityLabelOverrides:d.activityLabelOverrides||{},trainLogs:d.trainLogs||{},trainingPlans:d.trainingPlans||[],mindPrompts:d.mindPrompts||null,finData:d.finData||{},goals:d.goals||[],crm:d.crm||[],
         customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
@@ -3649,7 +3669,7 @@ function switchTab(tab){
     if(cnt)cnt.classList.toggle('active',t===tab);
   });
   if(tab==='mind')renderMind(weekDates(weekOffset));
-  if(tab==='life')renderLifeTracker();
+  if(tab==='life'){renderLifeTracker();renderGoals();renderCRM();}
   if(tab==='fitness')renderTraining();
   if(tab==='finance')renderFinance();
 }
@@ -4071,10 +4091,8 @@ function openMindPromptByType(type){
 // ── Finance tracker ──────────────────────────────────────
 let finMonthOffset = 0;
 
-const FIN_CATEGORIES = [
-  'Housing','Food & Groceries','Transport','Health & Gym','Education',
-  'Entertainment','Clothing','Savings','Investment','Utilities','Personal','Other'
-];
+const FIN_INCOME_CATS = ['','Salary','Business Income','Videography','Freelance','Reimbursement','Investment Return','Savings Withdrawal','Other'];
+const FIN_EXPENSE_CATS = ['','Housing','Food & Groceries','Fast Food','Transport','Health & Gym','Education','Subscriptions','Wine & Drinks','Clothing','Entertainment','Personal Care','Utilities','Savings Transfer','Other'];
 
 function chFinMonth(d){ finMonthOffset = d===0?0:finMonthOffset+d; renderFinance(); }
 
@@ -4179,7 +4197,11 @@ function renderFinance(){
         <div style="display:flex;gap:12px;margin-bottom:8px">
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--success)">R${sv.totalSaved.toLocaleString('en-ZA')}</div>
-            <div style="font-size:9px;color:var(--text3)">saved of R${sv.goal.toLocaleString('en-ZA')} (${pctOfYear}%)</div>
+            <div style="font-size:9px;color:var(--text3)">explicitly saved (${pctOfYear}% of goal)</div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--info)">R${sv.months.reduce((s,m)=>s+m.surplus,0).toLocaleString('en-ZA')}</div>
+            <div style="font-size:9px;color:var(--text3)">unallocated surplus</div>
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;color:${behind?'var(--danger)':'var(--success)'}">
@@ -4218,7 +4240,8 @@ function renderFinance(){
 }
 
 function addFinEntry(type){
-  const catOpts = FIN_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const cats = type==='income'?FIN_INCOME_CATS:FIN_EXPENSE_CATS;
+  const catOpts = cats.map(c=>`<option value="${c}">${c||'— select category —'}</option>`).join('');
   document.getElementById('m2title').textContent = type==='income'?'Add income':'Add expense';
   document.getElementById('m2body').innerHTML = `
     <div class="frow"><label>Description</label><input id="fin-name" placeholder="e.g. ${type==='income'?'Salary':'Rent'}"></div>
@@ -4280,15 +4303,448 @@ function getYearlySavings(){
     const data = (state.finData||{})[mk]||{income:[],expenses:[]};
     const income = (data.income||[]).reduce((s,e)=>s+e.amount,0);
     const expenses = (data.expenses||[]).reduce((s,e)=>s+e.amount,0);
-    const saved = Math.max(0, income - expenses);
-    cumActual += saved;
-    months.push({mk, month:m, saved, cumTarget: monthlyTarget*m, cumActual});
+    const explicit = (data.expenses||[]).filter(e=>e.category==='Savings Transfer').reduce((s,e)=>s+e.amount,0);
+    const withdrawn = (data.income||[]).filter(e=>e.category==='Savings Withdrawal').reduce((s,e)=>s+e.amount,0);
+    const net = income - expenses;
+    const surplus = Math.max(0, net);
+    cumActual += explicit;
+    months.push({mk, month:m, explicit, surplus, withdrawn, net, cumTarget: monthlyTarget*m, cumActual});
   }
   const totalSaved = cumActual;
   const currentMonthIdx = parseInt(getFinMonth().slice(5,7)) - 1;
   const expectedSoFar = monthlyTarget * (currentMonthIdx+1);
   const deficit = expectedSoFar - totalSaved;
   return {goal, monthlyTarget, months, totalSaved, deficit, year};
+}
+
+
+// ── Subscriptions ──
+function openSubscriptions(){
+  const subs = state.finData?._subscriptions||[];
+  const monthly = subs.filter(s=>s.cycle==='monthly').reduce((n,s)=>n+s.amount,0);
+  const annual = subs.filter(s=>s.cycle==='annual').reduce((n,s)=>n+s.amount,0);
+  const today = localDateStr(new Date());
+  const sorted = [...subs].sort((a,b)=>(a.nextDate||'').localeCompare(b.nextDate||''));
+  document.getElementById('m2title').textContent='📋 Subscriptions';
+  document.getElementById('m2body').innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:10px;font-size:11px">
+      <div style="flex:1;background:var(--bg2);border-radius:var(--radius);padding:6px 8px;text-align:center">
+        <div style="font-weight:700;color:var(--danger)">R${monthly.toLocaleString('en-ZA')}</div>
+        <div style="font-size:9px;color:var(--text3)">/month</div>
+      </div>
+      <div style="flex:1;background:var(--bg2);border-radius:var(--radius);padding:6px 8px;text-align:center">
+        <div style="font-weight:700;color:var(--danger)">R${annual.toLocaleString('en-ZA')}</div>
+        <div style="font-size:9px;color:var(--text3)">/year</div>
+      </div>
+      <div style="flex:1;background:var(--bg2);border-radius:var(--radius);padding:6px 8px;text-align:center">
+        <div style="font-weight:700;color:var(--text)">R${(monthly*12+annual).toLocaleString('en-ZA')}</div>
+        <div style="font-size:9px;color:var(--text3)">total annual</div>
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      ${sorted.map((s,i)=>{
+        const due = s.nextDate<=today?'<span style="color:var(--danger);font-size:9px">● Due</span>':'';
+        return`<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:.5px solid var(--border);font-size:11px">
+          <div style="flex:1">${esc(s.name)} ${due}</div>
+          <div style="font-size:9px;color:var(--text3)">${s.cycle}</div>
+          <div style="font-weight:600;color:var(--danger)">R${s.amount.toLocaleString('en-ZA')}</div>
+          <div style="font-size:9px;color:var(--text3)">${s.nextDate||''}</div>
+          <span style="cursor:pointer;color:var(--text3);font-size:10px" onclick="deleteSubscription(${i})">✕</span>
+        </div>`;
+      }).join('')}
+      ${!subs.length?'<div style="font-size:11px;color:var(--text3);padding:8px 0">No subscriptions added</div>':''}
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:8px;font-size:11px">
+      <div style="font-weight:600;margin-bottom:6px">Add subscription</div>
+      <div class="frow"><label>Name</label><input id="sub-name" placeholder="Netflix, Spotify..."></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="frow"><label>Amount (R)</label><input id="sub-amount" type="number" step="0.01" min="0"></div>
+        <div class="frow"><label>Billing</label>
+          <select id="sub-cycle"><option value="monthly">Monthly</option><option value="annual">Annual</option></select>
+        </div>
+      </div>
+      <div class="frow"><label>Next renewal date</label><input id="sub-date" type="date"></div>
+      <button class="btn btn-p" style="width:100%;margin-top:6px" onclick="addSubscription()">+ Add</button>
+    </div>
+    <div class="mactions"><button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Close</button></div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+function addSubscription(){
+  const name=document.getElementById('sub-name')?.value.trim();
+  const amount=parseFloat(document.getElementById('sub-amount')?.value)||0;
+  const cycle=document.getElementById('sub-cycle')?.value||'monthly';
+  const nextDate=document.getElementById('sub-date')?.value||'';
+  if(!name||!amount){showToast('Enter name and amount');return;}
+  if(!state.finData)state.finData={};
+  if(!state.finData._subscriptions)state.finData._subscriptions=[];
+  state.finData._subscriptions.push({name,amount,cycle,nextDate});
+  sched();openSubscriptions();
+}
+function deleteSubscription(idx){
+  if(!state.finData?._subscriptions)return;
+  state.finData._subscriptions.splice(idx,1);
+  sched();openSubscriptions();
+}
+
+
+// ── Goal Tracker ──
+const GOAL_PILLARS = ['Faith', 'Health', 'Academic/Career', 'Relationships', 'Financial', 'Personal Growth', 'Creative'];
+
+function renderGoals(){
+  const goals = state.goals||[];
+  const el = document.getElementById('goals-body');if(!el)return;
+  if(!goals.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">No goals yet. Add one below.</div>';
+    return;
+  }
+  const byPillar = {};
+  goals.forEach(g=>{if(!byPillar[g.pillar])byPillar[g.pillar]=[];byPillar[g.pillar].push(g);});
+  el.innerHTML = Object.entries(byPillar).map(([pillar,gs])=>{
+    const items = gs.map(g=>{
+      const statusCol = g.status==='achieved'?'var(--success)':g.status==='paused'?'var(--text3)':'var(--info)';
+      const done = g.milestones?g.milestones.filter(m=>m.done).length:0;
+      const total = g.milestones?g.milestones.length:0;
+      return`<div style="background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(g.title)}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic">${esc(g.why||'')}</div>
+            ${total?`<div style="font-size:9px;color:var(--text3);margin-top:3px">${done}/${total} milestones</div>`:''}
+          </div>
+          <span style="font-size:9px;padding:2px 7px;border-radius:8px;background:${statusCol}22;color:${statusCol};flex-shrink:0">${g.status||'active'}</span>
+          <span style="font-size:11px;cursor:pointer;color:var(--text3)" onclick="editGoal('${g.id}')">✎</span>
+        </div>
+      </div>`;
+    }).join('');
+    return`<div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">${pillar}</div>
+      ${items}
+    </div>`;
+  }).join('');
+}
+
+function openAddGoal(){
+  const pillarOpts = GOAL_PILLARS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('m2title').textContent='Add goal';
+  document.getElementById('m2body').innerHTML=`
+    <div class="frow"><label>Goal</label><input id="goal-title" placeholder="e.g. Complete MEng with distinction"></div>
+    <div class="frow"><label>Pillar</label><select id="goal-pillar">${pillarOpts}</select></div>
+    <div class="frow"><label>Why — your motivation</label><textarea id="goal-why" style="height:60px" placeholder="Because..."></textarea></div>
+    <div class="frow"><label>Target date (opt.)</label><input id="goal-date" type="date"></div>
+    <div class="frow"><label>Milestones (one per line)</label><textarea id="goal-ms" style="height:60px" placeholder="e.g. Submit chapter 1
+Defend proposal"></textarea></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveGoal()">Save</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function saveGoal(existingId){
+  const title=document.getElementById('goal-title')?.value.trim();
+  if(!title){showToast('Enter a goal title');return;}
+  const goal={
+    id:existingId||uid(),
+    title,
+    pillar:document.getElementById('goal-pillar')?.value||'Personal Growth',
+    why:document.getElementById('goal-why')?.value.trim()||'',
+    targetDate:document.getElementById('goal-date')?.value||'',
+    status:'active',
+    milestones:(document.getElementById('goal-ms')?.value||'').split('\n').filter(Boolean).map(t=>({text:t,done:false})),
+  };
+  if(!state.goals)state.goals=[];
+  if(existingId){const i=state.goals.findIndex(g=>g.id===existingId);if(i>=0)state.goals[i]=goal;else state.goals.push(goal);}
+  else state.goals.push(goal);
+  sched();document.getElementById('mbg2').style.display='none';renderGoals();
+}
+
+function editGoal(id){
+  const g=state.goals?.find(x=>x.id===id);if(!g)return;
+  const pillarOpts=GOAL_PILLARS.map(p=>`<option value="${p}"${g.pillar===p?' selected':''}>${p}</option>`).join('');
+  const statusOpts=['active','achieved','paused'].map(s=>`<option value="${s}"${g.status===s?' selected':''}>${s}</option>`).join('');
+  const msText=(g.milestones||[]).map(m=>m.text).join('\n');
+  document.getElementById('m2title').textContent='Edit goal';
+  document.getElementById('m2body').innerHTML=`
+    <div class="frow"><label>Goal</label><input id="goal-title" value="${esc(g.title)}"></div>
+    <div class="frow"><label>Pillar</label><select id="goal-pillar">${pillarOpts}</select></div>
+    <div class="frow"><label>Why</label><textarea id="goal-why" style="height:60px">${esc(g.why||'')}</textarea></div>
+    <div class="frow"><label>Target date</label><input id="goal-date" type="date" value="${g.targetDate||''}"></div>
+    <div class="frow"><label>Milestones</label><textarea id="goal-ms" style="height:60px">${esc(msText)}</textarea></div>
+    <div class="frow"><label>Status</label><select id="goal-status">${statusOpts}</select></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveGoalEdit('${id}')">Save</button>
+      <button class="btn btn-danger" onclick="deleteGoal('${id}')">Delete</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function saveGoalEdit(id){
+  const g=state.goals?.find(x=>x.id===id);if(!g)return;
+  g.title=document.getElementById('goal-title')?.value.trim()||g.title;
+  g.pillar=document.getElementById('goal-pillar')?.value||g.pillar;
+  g.why=document.getElementById('goal-why')?.value.trim()||'';
+  g.targetDate=document.getElementById('goal-date')?.value||'';
+  g.status=document.getElementById('goal-status')?.value||'active';
+  const msText=document.getElementById('goal-ms')?.value||'';
+  // Preserve done status for existing milestones
+  const newMs=msText.split('\n').filter(Boolean).map(t=>{
+    const existing=(g.milestones||[]).find(m=>m.text===t);
+    return existing||{'text':t,'done':false};
+  });
+  g.milestones=newMs;
+  sched();document.getElementById('mbg2').style.display='none';renderGoals();
+}
+
+function deleteGoal(id){
+  if(!confirm('Delete this goal?'))return;
+  state.goals=(state.goals||[]).filter(g=>g.id!==id);
+  sched();document.getElementById('mbg2').style.display='none';renderGoals();
+}
+
+
+// ── Personal CRM ──
+const CRM_FREQ = {'Weekly':7,'Fortnightly':14,'Monthly':30,'Quarterly':90,'Yearly':365};
+
+function renderCRM(){
+  const contacts = state.crm||[];
+  const el = document.getElementById('crm-body');if(!el)return;
+  const today = localDateStr(new Date());
+  if(!contacts.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;text-align:center">No contacts yet.</div>';return;
+  }
+  const sorted = [...contacts].sort((a,b)=>{
+    const daysA = a.lastContact?Math.floor((new Date()-new Date(a.lastContact+'T12:00:00'))/(86400000)):999;
+    const daysB = b.lastContact?Math.floor((new Date()-new Date(b.lastContact+'T12:00:00'))/(86400000)):999;
+    const freqA = CRM_FREQ[a.frequency]||30;
+    const freqB = CRM_FREQ[b.frequency]||30;
+    return (daysA/freqA)-(daysB/freqB);
+  }).reverse(); // most overdue first
+  el.innerHTML = sorted.map(c=>{
+    const days = c.lastContact?Math.floor((new Date()-new Date(c.lastContact+'T12:00:00'))/(86400000)):null;
+    const freq = CRM_FREQ[c.frequency]||30;
+    const overdue = days!==null&&days>freq;
+    const pct = days!==null?Math.min(100,Math.round((days/freq)*100)):100;
+    const col = overdue?'var(--danger)':pct>75?'var(--warn)':'var(--success)';
+    return`<div style="background:var(--bg);border:.5px solid ${overdue?'var(--danger-b)':'var(--border2)'};border-radius:var(--radius);padding:8px 10px;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(c.name)}</div>
+          <div style="font-size:9px;color:var(--text3)">${esc(c.type||'')} · ${c.frequency||'Monthly'}
+            ${days!==null?` · Last: ${days===0?'today':days+'d ago'}`:''}
+            ${overdue?` <span style="color:var(--danger)">⚠ overdue</span>`:''}
+          </div>
+        </div>
+        <button class="btn" style="font-size:9px;padding:2px 7px" onclick="logCRMContact('${c.id}')">✓ Log</button>
+        <span style="font-size:11px;cursor:pointer;color:var(--text3)" onclick="editCRM('${c.id}')">✎</span>
+      </div>
+      <div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width .3s"></div>
+      </div>
+      ${c.notes?`<div style="font-size:10px;color:var(--text3);margin-top:4px;font-style:italic">${esc(c.notes)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openAddCRM(){
+  const typeOpts=['Friend','Family','Mentor','Colleague','Acquaintance'].map(t=>`<option value="${t}">${t}</option>`).join('');
+  const freqOpts=Object.keys(CRM_FREQ).map(f=>`<option value="${f}">${f}</option>`).join('');
+  document.getElementById('m2title').textContent='Add contact';
+  document.getElementById('m2body').innerHTML=`
+    <div class="frow"><label>Name</label><input id="crm-name" placeholder="Full name"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="frow"><label>Relationship</label><select id="crm-type">${typeOpts}</select></div>
+      <div class="frow"><label>Stay in touch</label><select id="crm-freq">${freqOpts}</select></div>
+    </div>
+    <div class="frow"><label>Notes</label><textarea id="crm-notes" style="height:50px" placeholder="How you know them, things to remember..."></textarea></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveCRM()">Save</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function saveCRM(existingId){
+  const name=document.getElementById('crm-name')?.value.trim();if(!name){showToast('Enter a name');return;}
+  const contact={id:existingId||uid(),name,type:document.getElementById('crm-type')?.value,
+    frequency:document.getElementById('crm-freq')?.value,notes:document.getElementById('crm-notes')?.value.trim()||'',
+    lastContact:existingId?(state.crm?.find(c=>c.id===existingId)?.lastContact||null):null};
+  if(!state.crm)state.crm=[];
+  if(existingId){const i=state.crm.findIndex(c=>c.id===existingId);if(i>=0)state.crm[i]=contact;else state.crm.push(contact);}
+  else state.crm.push(contact);
+  sched();document.getElementById('mbg2').style.display='none';renderCRM();
+}
+
+function editCRM(id){
+  const c=state.crm?.find(x=>x.id===id);if(!c)return;
+  const typeOpts=['Friend','Family','Mentor','Colleague','Acquaintance'].map(t=>`<option value="${t}"${c.type===t?' selected':''}>${t}</option>`).join('');
+  const freqOpts=Object.keys(CRM_FREQ).map(f=>`<option value="${f}"${c.frequency===f?' selected':''}>${f}</option>`).join('');
+  document.getElementById('m2title').textContent='Edit contact';
+  document.getElementById('m2body').innerHTML=`
+    <div class="frow"><label>Name</label><input id="crm-name" value="${esc(c.name)}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="frow"><label>Relationship</label><select id="crm-type">${typeOpts}</select></div>
+      <div class="frow"><label>Stay in touch</label><select id="crm-freq">${freqOpts}</select></div>
+    </div>
+    <div class="frow"><label>Notes</label><textarea id="crm-notes" style="height:50px">${esc(c.notes||'')}</textarea></div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="saveCRM('${id}')">Save</button>
+      <button class="btn btn-danger" onclick="deleteCRM('${id}')">Delete</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Cancel</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function logCRMContact(id){
+  const c=state.crm?.find(x=>x.id===id);if(!c)return;
+  c.lastContact=localDateStr(new Date());
+  sched();renderCRM();showToast('Contact logged for '+c.name);
+}
+
+function deleteCRM(id){
+  if(!confirm('Delete contact?'))return;
+  state.crm=(state.crm||[]).filter(c=>c.id!==id);
+  sched();document.getElementById('mbg2').style.display='none';renderCRM();
+}
+
+// ── Full Weekly Review ──
+function openWeeklyReview(){
+  const dates=weekDates(weekOffset);
+  const m=weekMon(weekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
+  const wkLabel=fmtDate(m)+' – '+fmtDate(sun);
+  const logs=state.trainLogs||{};
+  const plan=getActivePlan?getActivePlan():null;
+
+  // ── Planner ──
+  const blocks=getWeekBlocks();
+  const done=blocks.filter(b=>b.status==='done');
+  const skipped=blocks.filter(b=>b.status==='skipped');
+  const total=blocks.filter(b=>b.status!=='dropped');
+  const completion=total.length?Math.round((done.length/total.length)*100):0;
+
+  // ── Life ──
+  const lifeDates=dates.map(d=>localDateStr(d));
+  const lifeEntries=lifeDates.map(dk=>(state.lifeLog||[]).find(l=>l.date===dk)||{});
+  const moods=lifeEntries.map(e=>e.mood).filter(Boolean);
+  const sleeps=lifeEntries.map(e=>e.sleep).filter(Boolean);
+  const screens=lifeEntries.map(e=>e.screen).filter(Boolean);
+  const avgMood=moods.length?( moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1):null;
+  const avgSleep=sleeps.length?(sleeps.reduce((a,b)=>a+b,0)/sleeps.length).toFixed(1):null;
+  const avgScreen=screens.length?(screens.reduce((a,b)=>a+b,0)/screens.length).toFixed(1):null;
+  const prayedDays=lifeEntries.filter(e=>e.prayed).length;
+  const bibleDays=lifeEntries.filter(e=>e.bible).length;
+  const exerciseDays=lifeEntries.filter(e=>e.exercise).length;
+
+  // ── Mind ──
+  const mindLogs=state.mindLogs||[];
+  const wkMind=mindLogs.filter(l=>lifeDates.includes(l.date));
+  const mindActs=[...new Set(wkMind.map(l=>l.actId))];
+  const mindMinsTotal=wkMind.reduce((s,l)=>s+(l.mins||0),0);
+
+  // ── Training ──
+  let trainSummary='';
+  if(plan){
+    const weeks=plan.weeks||[];
+    const wkSessions=weeks[trainWeek-1]?.sessions||[];
+    const logged=wkSessions.map((s,si)=>logs[`${plan.id}_w${trainWeek}_${si}`]).filter(Boolean);
+    const feelings=logged.map(l=>l.feeling).filter(Boolean);
+    const watts=logged.map(l=>l.watts).filter(Boolean);
+    trainSummary=`${logged.length}/${wkSessions.filter(s=>!s.type.toLowerCase().includes('rest')).length} sessions logged`
+      +(watts.length?` · Avg ${Math.round(watts.reduce((a,b)=>a+b)/watts.length)}W`:'')
+      +(feelings.length?` · Avg feeling ${(feelings.reduce((a,b)=>a+b)/feelings.length).toFixed(1)}/10`:'');
+  }
+
+  // ── Finance ──
+  const finMk=getFinMonth?getFinMonth():null;
+  const finData=finMk&&state.finData?state.finData[finMk]:null;
+  const finIncome=finData?(finData.income||[]).reduce((s,e)=>s+e.amount,0):0;
+  const finExp=finData?(finData.expenses||[]).reduce((s,e)=>s+e.amount,0):0;
+
+  // ── Relationships ──
+  const overdueCRM=(state.crm||[]).filter(c=>{
+    if(!c.lastContact)return true;
+    const days=Math.floor((new Date()-new Date(c.lastContact+'T12:00:00'))/(86400000));
+    return days>(CRM_FREQ[c.frequency]||30);
+  });
+
+  // ── Goals ──
+  const activeGoals=(state.goals||[]).filter(g=>g.status==='active');
+
+  const moodEmoji={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
+
+  document.getElementById('m2title').textContent='📋 Weekly Review — '+wkLabel;
+  document.getElementById('m2body').innerHTML=`
+    <div style="font-size:12px;line-height:1.8;max-height:70vh;overflow-y:auto;padding-right:4px">
+
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">📅 Planner</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+        ${done.length}/${total.length} blocks done (${completion}%)
+        ${skipped.length?` · ${skipped.length} skipped`:''}
+      </div>
+
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🌱 Life</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:3px">
+        <div>Mood avg: ${avgMood?moodEmoji[Math.round(avgMood)]+' '+avgMood:'-'}</div>
+        <div>Sleep avg: ${avgSleep?avgSleep+'h':'-'}</div>
+        <div>Screen avg: ${avgScreen?avgScreen+'h/day':'-'}</div>
+        <div>Exercise: ${exerciseDays}/7 days</div>
+        <div>Prayed: ${prayedDays}/7</div>
+        <div>Bible: ${bibleDays}/7</div>
+      </div>
+
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🧠 Mind</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+        ${mindActs.length?mindActs.join(', ')+' · '+mindMinsTotal+'min total':'Nothing logged this week'}
+      </div>
+
+      ${trainSummary?`
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🚴 Training</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${trainSummary}</div>`:''}
+
+      ${finData?`
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">💰 Finance (${finMk})</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+        Income R${finIncome.toLocaleString('en-ZA')} · Expenses R${finExp.toLocaleString('en-ZA')} · Net R${(finIncome-finExp).toLocaleString('en-ZA')}
+      </div>`:''}
+
+      ${overdueCRM.length?`
+      <div style="font-weight:700;color:var(--danger);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">👥 Relationships — overdue</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${overdueCRM.map(c=>c.name).join(', ')}</div>`:''}
+
+      ${activeGoals.length?`
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🎯 Active goals (${activeGoals.length})</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${activeGoals.map(g=>g.title).join('<br>')}</div>`:''}
+
+      <div style="font-weight:700;color:var(--text);margin-bottom:6px;border-bottom:.5px solid var(--border2);padding-bottom:4px">✍️ Reflection</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">What moved the needle this week?</div>
+      <textarea id="review-wins" style="width:100%;height:50px;font-size:11px;margin-bottom:6px" placeholder="Wins, progress, breakthroughs..."></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">What do you want to do differently?</div>
+      <textarea id="review-diff" style="width:100%;height:50px;font-size:11px;margin-bottom:6px" placeholder="Lessons, adjustments..."></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">One intention for next week</div>
+      <textarea id="review-next" style="width:100%;height:40px;font-size:11px"></textarea>
+    </div>
+    <div class="mactions">
+      <button class="btn btn-p" onclick="exportWeeklyReview(this.dataset.wk)" data-wk="${wkLabel}">📤 Export</button>
+      <button class="btn" onclick="document.getElementById('mbg2').style.display='none'">Close</button>
+    </div>`;
+  document.getElementById('mbg2').style.display='flex';
+}
+
+function exportWeeklyReview(wkLabel){
+  const wins=document.getElementById('review-wins')?.value||'';
+  const diff=document.getElementById('review-diff')?.value||'';
+  const next=document.getElementById('review-next')?.value||'';
+  // Re-open with same content, just export text
+  let txt=`WEEKLY REVIEW — ${wkLabel}\nGenerated: ${new Date().toLocaleString('en-ZA')}\n\n`;
+  txt+=document.querySelector('#m2body > div')?.innerText||'';
+  if(wins)txt+=`\n\nWINS:\n${wins}`;
+  if(diff)txt+=`\n\nDO DIFFERENTLY:\n${diff}`;
+  if(next)txt+=`\n\nINTENTION FOR NEXT WEEK:\n${next}`;
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='weekly-review-'+wkLabel.replace(/[^a-z0-9]/gi,'-')+'.txt';
+  a.click();URL.revokeObjectURL(a.href);
+  showToast('Review exported');
 }
 
 loadSB();
