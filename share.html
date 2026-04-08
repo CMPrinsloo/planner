@@ -145,6 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="grid-wrap">
       <div class="grid-wrap-inner">
         <div class="dl-row" id="dl-row"></div>
+        <div id="share-debug"></div>
         <div class="grid" id="grid"></div>
       </div>
     </div>
@@ -300,6 +301,30 @@ function render(){
   const m=weekMon(weekOffset),sun=new Date(m);sun.setDate(m.getDate()+6);
   document.getElementById('wlbl').textContent=fmtDate(m)+' – '+fmtDate(sun)+' '+m.getFullYear();
   renderGrid(dates);renderSummary(dates);
+  renderDebug();
+}
+
+function renderDebug(){
+  const el=document.getElementById('share-debug');
+  if(!el)return;
+  const wk=weekKey(weekOffset);
+  const masters=state.blocks.filter(b=>!b.week&&b.recur&&b.recur!=='none');
+  const weekSpecific=state.blocks.filter(b=>b.week&&!b.overrideOf);
+  const overrides=state.blocks.filter(b=>b.overrideOf);
+  const expanded=getWeekBlocks();
+  el.innerHTML=`<details style="font-size:10px;color:var(--text3);margin-top:8px">
+    <summary style="cursor:pointer;font-weight:600">🔍 Debug info (tap to expand)</summary>
+    <div style="padding:8px;background:var(--bg2);border-radius:6px;margin-top:4px;font-family:monospace;font-size:9px;line-height:1.8">
+      <b>Week key:</b> ${wk}<br>
+      <b>Total blocks:</b> ${state.blocks.length}<br>
+      <b>Recurring masters:</b> ${masters.length}<br>
+      ${masters.map(b=>`→ ${b.title||b.activity} | recur:${b.recur} | dayIdx:${b.dayIdx} | recurDays:${JSON.stringify(b.recurDays||[])}`).join('<br>')}
+      <br><b>Week-specific:</b> ${weekSpecific.length}<br>
+      <b>Overrides:</b> ${overrides.length}<br>
+      <b>Expanded this week:</b> ${expanded.length}<br>
+      ${expanded.map(b=>`→ ${b.title||b.activity} | day:${b.dayIdx} | status:${b.status}`).join('<br>')}
+    </div>
+  </details>`;
 }
 
 function renderGrid(dates){

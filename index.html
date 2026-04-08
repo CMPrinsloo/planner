@@ -1005,7 +1005,10 @@ function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMo
 function getWeekBlocks(){
   const wk=weekKey(weekOffset),dates=weekDates(weekOffset),out=[];
   state.blocks.forEach(b=>{
-    if(b.week===wk){out.push({...b,isInstance:true});return;}
+    // Week-specific non-override blocks go directly
+    if(b.week===wk&&!b.overrideOf){out.push({...b,isInstance:true});return;}
+    // Overrides are picked up via their master's expansion path below — skip here
+    if(b.week===wk&&b.overrideOf)return;
     if(!b.recur||b.recur==='none')return;
     if(b.recur==='weekly'){
       dates.forEach((d,di)=>{
@@ -3045,13 +3048,13 @@ function updateTabNotifs(){
 const LIFE_ROWS=[
   {id:'moment',  label:'Moment of day', type:'text',    icon:'✨'},
   {id:'mood',    label:'Mood',          type:'mood',    icon:'😊'},
-  {id:'sleep',   label:'Sleep',         type:'number',  icon:'😴', unit:'hrs', sparkline:true},
+  {id:'sleep',   label:'Sleep',         type:'number',  icon:'😴', unit:'h', sparkline:true},
   {id:'weight',  label:'Weight',        type:'number',  icon:'⚖️', unit:'kg'},
   {id:'exercise',label:'Exercise',      type:'check',   icon:'🏃'},
   {id:'prayed',  label:'Prayed',        type:'check',   icon:'🙏'},
   {id:'bible',   label:'Bible',         type:'check',   icon:'📖'},
-  {id:'screen',  label:'Screen time',   type:'number',  icon:'📱', unit:'hrs', sparkline2:true},
-  {id:'work',    label:'Work hrs',      type:'workhrs', icon:'💼', unit:'hrs', sparkline2:true},
+  {id:'screen',  label:'Screen time',   type:'number',  icon:'📱', unit:'h', sparkline2:true},
+  {id:'work',    label:'Work hrs',      type:'workhrs', icon:'💼', unit:'h', sparkline2:true},
 ];
 
 function chLifeWk(d){
@@ -4307,7 +4310,7 @@ function getYearlySavings(){
     const withdrawn = (data.income||[]).filter(e=>e.category==='Savings Withdrawal').reduce((s,e)=>s+e.amount,0);
     const net = income - expenses;
     const surplus = Math.max(0, net);
-    cumActual += explicit;
+    cumActual += explicit - withdrawn; // withdrawals reduce savings progress
     months.push({mk, month:m, explicit, surplus, withdrawn, net, cumTarget: monthlyTarget*m, cumActual});
   }
   const totalSaved = cumActual;
@@ -4402,18 +4405,26 @@ function renderGoals(){
   el.innerHTML = Object.entries(byPillar).map(([pillar,gs])=>{
     const items = gs.map(g=>{
       const statusCol = g.status==='achieved'?'var(--success)':g.status==='paused'?'var(--text3)':'var(--info)';
-      const done = g.milestones?g.milestones.filter(m=>m.done).length:0;
+      const doneCnt = g.milestones?g.milestones.filter(m=>m.done).length:0;
       const total = g.milestones?g.milestones.length:0;
+      const msHtml = (g.milestones||[]).map((ms,msi)=>`
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-top:.5px solid var(--border)">
+          <span style="cursor:pointer;font-size:14px;color:${ms.done?'var(--success)':'var(--border2)'}" onclick="toggleGoalMs('${g.id}',${msi})">${ms.done?'✓':'○'}</span>
+          <span style="font-size:10px;flex:1;color:var(--text2);${ms.done?'text-decoration:line-through;opacity:.5':''}">${esc(ms.text)}</span>
+          ${ms.doneDate?`<span style="font-size:9px;color:var(--text3)">${ms.doneDate}</span>`:''}
+        </div>`).join('');
       return`<div style="background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px">
         <div style="display:flex;align-items:flex-start;gap:8px">
           <div style="flex:1">
             <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(g.title)}</div>
             <div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic">${esc(g.why||'')}</div>
-            ${total?`<div style="font-size:9px;color:var(--text3);margin-top:3px">${done}/${total} milestones</div>`:''}
+            ${g.targetDate?`<div style="font-size:9px;color:var(--text3);margin-top:2px">🗓 Target: ${g.targetDate}</div>`:''}
+            ${total?`<div style="font-size:9px;color:var(--text3);margin-top:2px">${doneCnt}/${total} milestones done</div>`:''}
           </div>
           <span style="font-size:9px;padding:2px 7px;border-radius:8px;background:${statusCol}22;color:${statusCol};flex-shrink:0">${g.status||'active'}</span>
           <span style="font-size:11px;cursor:pointer;color:var(--text3)" onclick="editGoal('${g.id}')">✎</span>
         </div>
+        ${msHtml?`<div style="margin-top:6px">${msHtml}</div>`:''}
       </div>`;
     }).join('');
     return`<div style="margin-bottom:12px">
@@ -4496,6 +4507,13 @@ function saveGoalEdit(id){
   sched();document.getElementById('mbg2').style.display='none';renderGoals();
 }
 
+function toggleGoalMs(goalId, msIdx){
+  const g=state.goals?.find(x=>x.id===goalId);if(!g||!g.milestones)return;
+  const ms=g.milestones[msIdx];if(!ms)return;
+  ms.done=!ms.done;
+  ms.doneDate=ms.done?localDateStr(new Date()):null;
+  sched();renderGoals();
+}
 function deleteGoal(id){
   if(!confirm('Delete this goal?'))return;
   state.goals=(state.goals||[]).filter(g=>g.id!==id);
@@ -4504,7 +4522,7 @@ function deleteGoal(id){
 
 
 // ── Personal CRM ──
-const CRM_FREQ = {'Weekly':7,'Fortnightly':14,'Monthly':30,'Quarterly':90,'Yearly':365};
+const CRM_FREQ = {'Daily':1,'Weekly':7,'Fortnightly':14,'Monthly':30,'Quarterly':90,'Yearly':365};
 
 function renderCRM(){
   const contacts = state.crm||[];
@@ -4597,8 +4615,12 @@ function editCRM(id){
 
 function logCRMContact(id){
   const c=state.crm?.find(x=>x.id===id);if(!c)return;
-  c.lastContact=localDateStr(new Date());
-  sched();renderCRM();showToast('Contact logged for '+c.name);
+  const today=localDateStr(new Date());
+  const picked=prompt('Log contact with '+c.name+' on date (YYYY-MM-DD):',today);
+  if(picked===null)return;
+  const date=picked.trim()||today;
+  c.lastContact=date;
+  sched();renderCRM();showToast('Logged contact with '+c.name+' on '+date);
 }
 
 function deleteCRM(id){
@@ -4649,8 +4671,14 @@ function openWeeklyReview(){
     const logged=wkSessions.map((s,si)=>logs[`${plan.id}_w${trainWeek}_${si}`]).filter(Boolean);
     const feelings=logged.map(l=>l.feeling).filter(Boolean);
     const watts=logged.map(l=>l.watts).filter(Boolean);
+    const vols=logged.map(l=>l.vol).filter(Boolean);
+    const durs=logged.map(l=>parseFloat(l.dur)).filter(Boolean);
+    const totalVol=vols.reduce((a,b)=>a+b,0);
+    const totalDur=durs.reduce((a,b)=>a+b,0);
     trainSummary=`${logged.length}/${wkSessions.filter(s=>!s.type.toLowerCase().includes('rest')).length} sessions logged`
       +(watts.length?` · Avg ${Math.round(watts.reduce((a,b)=>a+b)/watts.length)}W`:'')
+      +(totalVol?` · ${Math.round(totalVol).toLocaleString()}kg lifted`:'')
+      +(totalDur?` · ${Math.round(totalDur)}min total`:'')
       +(feelings.length?` · Avg feeling ${(feelings.reduce((a,b)=>a+b)/feelings.length).toFixed(1)}/10`:'');
   }
 
