@@ -317,7 +317,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .feeling-btn{width:26px;height:26px;border-radius:50%;border:.5px solid var(--border2);background:var(--bg);font-size:10px;font-weight:600;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .1s;}
 .feeling-btn.sel{background:var(--info);color:#fff;border-color:var(--info);}
 .train-week-totals{background:var(--bg2);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:10px 12px;margin-top:8px;}
-.train-totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.train-totals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;margin-top:0;}
 .tot-stat{text-align:center;background:var(--bg);border-radius:var(--radius);padding:8px;}
 .tot-num{font-size:16px;font-weight:700;color:var(--text);}
 .tot-lbl{font-size:9px;color:var(--text3);margin-top:2px;}
@@ -676,7 +676,7 @@ svg.sparkline{overflow:visible;}
     <div style="margin-top:4px;padding:10px 10px 10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <div style="font-size:12px;font-weight:700;color:var(--text);flex:1">👥 Relationships</div>
-        <button class="btn btn-p" onclick="openAddCRM()">+ Add</button>
+        <button class="btn btn-p" style="padding:6px 14px;font-size:12px" onclick="openAddCRM()">+ Add contact</button>
       </div>
       <div id="crm-body"></div>
     </div>
@@ -1341,28 +1341,33 @@ function renderProjects(){
         </div>
       </div>`;
     }).join('');
+    const collapsed=JSON.parse(localStorage.getItem('proj_collapsed')||'{}')[p.id];
     return`<div class="project-card">
-      <div class="project-card-head">
-        <div class="ms-arrows" style="margin-right:2px">
+      <div class="project-card-head" style="cursor:pointer" onclick="toggleProjCollapse('${p.id}')">
+        <div class="ms-arrows" style="margin-right:2px" onclick="event.stopPropagation()">
           <button class="reorder-btn"onclick="moveProject(${pi},-1)"${pi===0?'style="visibility:hidden"':''}>▲</button>
           <button class="reorder-btn"onclick="moveProject(${pi},1)"${pi===projects.length-1?'style="visibility:hidden"':''}>▼</button>
         </div>
         <div class="project-dot"style="background:${act.color}"></div>
         <div class="project-name">${esc(p.name)}${deadlineStr}</div>
-        <div class="project-hrs">${wkh}h logged</div>
+        <div style="font-size:10px;color:var(--text3);flex-shrink:0">${prog}%</div>
+        <div class="project-hrs">${wkh}h</div>
         ${prog===100?`<button class="btn" style="font-size:9px;padding:1px 6px;color:var(--success)" onclick="event.stopPropagation();archiveProject('${p.id}')">✓ Archive</button>`:''}
-        <div class="project-edit"onclick="editProject('${p.id}')">✎</div>
+        <div class="project-edit" onclick="event.stopPropagation();editProject('${p.id}')">✎</div>
+        <span style="font-size:10px;color:var(--text3);margin-left:2px">${collapsed?'›':'˅'}</span>
       </div>
-      <div class="prog-label">
-        <span>Progress${isManual?' <span style="font-size:9px;color:var(--text3)">(manual)</span>':''}</span>
-        <span><span id="ps-label-${esc(p.id)}">${prog}</span>%
-          ${isManual?`<span style="font-size:9px;color:var(--info);cursor:pointer;margin-left:4px"onclick="clearManualProg('${p.id}')">auto</span>`:''}
-        </span>
+      <div id="proj-body-${esc(p.id)}" style="${collapsed?'display:none':''}">
+        <div class="prog-label" style="margin-top:8px">
+          <span>Progress${isManual?' <span style="font-size:9px;color:var(--text3)">(manual)</span>':''}</span>
+          <span><span id="ps-label-${esc(p.id)}">${prog}</span>%
+            ${isManual?`<span style="font-size:9px;color:var(--info);cursor:pointer;margin-left:4px"onclick="clearManualProg('${p.id}')">auto</span>`:''}
+          </span>
+        </div>
+        <div class="prog-track"><div class="prog-fill"id="pf-${esc(p.id)}"style="width:${prog}%;background:${act.color}"></div></div>
+        <input type="range"min="0"max="100"value="${prog}"id="ps-${esc(p.id)}"style="width:100%;margin-bottom:8px"oninput="updateProg('${p.id}',this.value)">
+        <div class="milestones">${ms}</div>
+        <div class="add-ms"><input type="text"placeholder="+ milestone"onkeydown="if(event.key==='Enter')addMs('${p.id}',this)"></div>
       </div>
-      <div class="prog-track"><div class="prog-fill"id="pf-${esc(p.id)}"style="width:${prog}%;background:${act.color}"></div></div>
-      <input type="range"min="0"max="100"value="${prog}"id="ps-${esc(p.id)}"style="width:100%;margin-bottom:8px"oninput="updateProg('${p.id}',this.value)">
-      <div class="milestones">${ms}</div>
-      <div class="add-ms"><input type="text"placeholder="+ milestone"onkeydown="if(event.key==='Enter')addMs('${p.id}',this)"></div>
     </div>`;
   }),...archivedProjs.map((p,pi)=>{
     const act=getAct(p.activityId);
@@ -1611,6 +1616,15 @@ function moveMs(pid,mi,dir){
   if(newIdx<0||newIdx>=arr.length)return;
   [arr[mi],arr[newIdx]]=[arr[newIdx],arr[mi]];
   sched();renderProjects();
+}
+function toggleProjCollapse(id){
+  const stored=JSON.parse(localStorage.getItem('proj_collapsed')||'{}');
+  stored[id]=!stored[id];
+  localStorage.setItem('proj_collapsed',JSON.stringify(stored));
+  const body=document.getElementById('proj-body-'+id);
+  if(body)body.style.display=stored[id]?'none':'';
+  // flip chevron
+  renderProjects();
 }
 function updateProg(id,val){
   const v=parseInt(val);
@@ -3827,13 +3841,18 @@ function renderTrainTotals(sessions, logs, plan){
   const avgWatts=loggedSessions.filter(l=>l.watts).map(l=>l.watts);
   const avgHR=loggedSessions.filter(l=>l.hr).map(l=>l.hr);
   const feelings=loggedSessions.filter(l=>l.feeling).map(l=>l.feeling);
+  const totalVol=loggedSessions.reduce((s,l)=>s+(parseFloat(l.vol)||0),0);
+  const totalDur=loggedSessions.reduce((s,l)=>s+(parseFloat(l.dur)||0),0);
   const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const nonRest=sessions.filter(s=>!s.type.toLowerCase().includes('rest')).length;
   totEl.innerHTML=`<div class="train-week-totals">
-    <div style="font-size:11px;font-weight:600;color:var(--text)">Week ${trainWeek} — ${loggedSessions.length}/${sessions.filter(s=>!s.type.toLowerCase().includes('rest')).length} sessions logged</div>
+    <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">Week ${trainWeek} — ${loggedSessions.length}/${nonRest} sessions logged</div>
     <div class="train-totals-grid">
-      <div class="tot-stat"><div class="tot-num">${avg(avgWatts)||'—'}</div><div class="tot-lbl">Avg watts</div></div>
-      <div class="tot-stat"><div class="tot-num">${avg(avgHR)||'—'}</div><div class="tot-lbl">Avg HR</div></div>
-      <div class="tot-stat"><div class="tot-num">${avg(feelings)||'—'}</div><div class="tot-lbl">Avg feeling</div></div>
+      ${avg(avgWatts)?`<div class="tot-stat"><div class="tot-num">${avg(avgWatts)}</div><div class="tot-lbl">Avg watts</div></div>`:''}
+      ${avg(avgHR)?`<div class="tot-stat"><div class="tot-num">${avg(avgHR)}</div><div class="tot-lbl">Avg HR</div></div>`:''}
+      ${avg(feelings)?`<div class="tot-stat"><div class="tot-num">${avg(feelings)}</div><div class="tot-lbl">Avg feeling</div></div>`:''}
+      ${totalVol?`<div class="tot-stat"><div class="tot-num">${Math.round(totalVol).toLocaleString()}</div><div class="tot-lbl">kg lifted</div></div>`:''}
+      ${totalDur?`<div class="tot-stat"><div class="tot-num">${Math.round(totalDur)}</div><div class="tot-lbl">min trained</div></div>`:''}
     </div>
   </div>`;
 }
