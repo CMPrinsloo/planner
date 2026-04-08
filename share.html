@@ -241,8 +241,6 @@ function getWeekBlocks(){
   const dates=weekDates(weekOffset),expanded=[];
   const dateStrs=dates.map(d=>isoDate(d));
   const recurMasters=state.blocks.filter(b=>!b.week&&b.recur&&b.recur!=='none');
-  console.log('Total blocks:', state.blocks.length, '| Recurring masters:', recurMasters.length, '| wk:', wk);
-  recurMasters.forEach(b=>console.log('  Master:', b.id, 'title:', b.title||b.activity, 'recur:', b.recur, 'dayIdx:', b.dayIdx));
 
   // Build map: normalised Monday key → stored week keys (there may be multiple formats)
   const storedWkMap={};
@@ -258,7 +256,10 @@ function getWeekBlocks(){
     if(b.activity==='other')return;
 
     if(b.week){
-      // Week-specific: match using blockDateStr regardless of key format
+      // Week-specific: normalise both to Monday key before comparing
+      const bMonKey=toMonKey(b.week);
+      if(bMonKey!==wk)return; // not this week
+      // Find which day column using blockDateStr (handles both key formats)
       const bds=blockDateStr(b);
       const di=dateStrs.indexOf(bds);
       if(di>=0)expanded.push({...b,dayIdx:di});
@@ -312,19 +313,8 @@ function renderDebug(){
   const weekSpecific=state.blocks.filter(b=>b.week&&!b.overrideOf);
   const overrides=state.blocks.filter(b=>b.overrideOf);
   const expanded=getWeekBlocks();
-  el.innerHTML=`<details style="font-size:10px;color:var(--text3);margin-top:8px">
-    <summary style="cursor:pointer;font-weight:600">🔍 Debug info (tap to expand)</summary>
-    <div style="padding:8px;background:var(--bg2);border-radius:6px;margin-top:4px;font-family:monospace;font-size:9px;line-height:1.8">
-      <b>Week key:</b> ${wk}<br>
-      <b>Total blocks:</b> ${state.blocks.length}<br>
-      <b>Recurring masters:</b> ${masters.length}<br>
-      ${masters.map(b=>`→ ${b.title||b.activity} | recur:${b.recur} | dayIdx:${b.dayIdx} | recurDays:${JSON.stringify(b.recurDays||[])}`).join('<br>')}
-      <br><b>Week-specific:</b> ${weekSpecific.length}<br>
-      <b>Overrides:</b> ${overrides.length}<br>
-      <b>Expanded this week:</b> ${expanded.length}<br>
-      ${expanded.map(b=>`→ ${b.title||b.activity} | day:${b.dayIdx} | status:${b.status}`).join('<br>')}
-    </div>
-  </details>`;
+// Debug panel removed — issue resolved
+  el.innerHTML='';
 }
 
 function renderGrid(dates){
