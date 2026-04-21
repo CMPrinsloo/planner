@@ -3986,6 +3986,9 @@ function exportTrainReport(){
         if(log.dur)report+=`    Actual duration: ${log.dur}\n`;
         if(log.feeling)report+=`    Feeling: ${log.feeling}/10\n`;
         if(log.notes)report+=`    Notes: ${log.notes}\n`;
+        if(log.vol)report+=`    Volume: ${log.vol}/\n`;
+        if(log.dist)report+=`    Distance: ${log.dist}\n`;
+        if(log.elev)report+=`    Elevation: ${log.elev}\n`;
         weekLogs.push(log);
       } else {
         report += `  — Not logged\n`;
@@ -4675,6 +4678,7 @@ function openWeeklyReview(){
   const prayedDays=lifeEntries.filter(e=>e.prayed).length;
   const bibleDays=lifeEntries.filter(e=>e.bible).length;
   const exerciseDays=lifeEntries.filter(e=>e.exercise).length;
+  const anki=lifeEntries.filter(e=>e.anki).length;
 
   // ── Mind ──
   const mindLogs=state.mindLogs||[];
@@ -4737,6 +4741,7 @@ function openWeeklyReview(){
         <div>Exercise: ${exerciseDays}/7 days</div>
         <div>Prayed: ${prayedDays}/7</div>
         <div>Bible: ${bibleDays}/7</div>
+        <div>Bible: ${anki}/7</div>
       </div>
 
       <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🧠 Mind</div>
