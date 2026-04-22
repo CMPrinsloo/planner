@@ -3067,6 +3067,7 @@ const LIFE_ROWS=[
   {id:'exercise',label:'Exercise',      type:'check',   icon:'🏃'},
   {id:'prayed',  label:'Prayed',        type:'check',   icon:'🙏'},
   {id:'bible',   label:'Bible',         type:'check',   icon:'📖'},
+  {id:'anki',    label:'Anki',          type:'check',   icon:'📚'},
   {id:'screen',  label:'Screen time',   type:'number',  icon:'📱', unit:'h', sparkline2:true},
   {id:'work',    label:'Work hrs',      type:'workhrs', icon:'💼', unit:'h', sparkline2:true},
 ];
@@ -3986,9 +3987,9 @@ function exportTrainReport(){
         if(log.dur)report+=`    Actual duration: ${log.dur}\n`;
         if(log.feeling)report+=`    Feeling: ${log.feeling}/10\n`;
         if(log.notes)report+=`    Notes: ${log.notes}\n`;
-        if(log.vol)report+=`    Volume: ${log.vol}/\n`;
-        if(log.dist)report+=`    Distance: ${log.dist}\n`;
-        if(log.elev)report+=`    Elevation: ${log.elev}\n`;
+        if(log.vol)report+=`    Volume: ${log.vol}kg\n`;
+        if(log.dist)report+=`    Distance: ${log.dist}km\n`;
+        if(log.elev)report+=`    Elevation: ${log.elev}m\n`;
         weekLogs.push(log);
       } else {
         report += `  — Not logged\n`;
@@ -4678,7 +4679,7 @@ function openWeeklyReview(){
   const prayedDays=lifeEntries.filter(e=>e.prayed).length;
   const bibleDays=lifeEntries.filter(e=>e.bible).length;
   const exerciseDays=lifeEntries.filter(e=>e.exercise).length;
-  const anki=lifeEntries.filter(e=>e.anki).length;
+  const ankiDays=lifeEntries.filter(e=>e.anki).length;
 
   // ── Mind ──
   const mindLogs=state.mindLogs||[];
@@ -4741,7 +4742,7 @@ function openWeeklyReview(){
         <div>Exercise: ${exerciseDays}/7 days</div>
         <div>Prayed: ${prayedDays}/7</div>
         <div>Bible: ${bibleDays}/7</div>
-        <div>Bible: ${anki}/7</div>
+        <div>Anki: ${ankiDays}/7</div>
       </div>
 
       <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🧠 Mind</div>
