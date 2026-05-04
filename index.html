@@ -17,7 +17,42 @@
   --success:#2d7a3a;--success-bg:#e8f5ea;--success-b:#2d7a3a;
   --danger:#b83232;--danger-bg:#fbebeb;--danger-b:#b83232;
   --warn:#996600;--warn-bg:#fff8e0;--warn-b:#996600;
+  --accent:#5B8DEF;--accent-soft:rgba(91,141,239,0.14);
 }
+/* OneTrack dark theme */
+body.ot-dark{
+  --bg:#090D18;--bg2:#111827;--bg3:#1C2540;
+  --text:#EEF2FF;--text2:rgba(220,228,255,0.6);--text3:rgba(220,228,255,0.35);
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --info:#5B8DEF;--info-bg:rgba(91,141,239,0.14);--info-b:#5B8DEF;
+  --success:#22C55E;--success-bg:rgba(34,197,94,0.12);--success-b:#22C55E;
+  --danger:#F87171;--danger-bg:rgba(248,113,113,0.12);--danger-b:#F87171;
+  --warn:#FBBF24;--warn-bg:rgba(251,191,36,0.12);--warn-b:#FBBF24;
+  --accent:#5B8DEF;--accent-soft:rgba(91,141,239,0.14);
+  background:#090D18;
+}
+body.ot-dark #app{background:#090D18;}
+body.ot-dark .tab-bar{background:#111827;border-color:rgba(255,255,255,0.07);}
+body.ot-dark .tab-btn.active{background:#1C2540;}
+body.ot-dark .tab-btn:hover{background:#1C2540;}
+body.ot-dark .sync-bar{background:#111827;border-color:rgba(255,255,255,0.07);}
+body.ot-dark .blk{border-color:rgba(255,255,255,0.1)!important;}
+body.ot-dark .grid-outer{background:#0d1120;}
+body.ot-dark .ghour{color:rgba(220,228,255,0.22);}
+body.ot-dark .ghead{border-color:rgba(255,255,255,0.08)!important;}
+body.ot-dark .gcell{border-color:rgba(255,255,255,0.05)!important;}
+body.ot-dark .modal-inner,body.ot-dark .modal-inner2{background:#111827;border-color:rgba(255,255,255,0.1);}
+body.ot-dark input,body.ot-dark select,body.ot-dark textarea{background:#1C2540;color:#EEF2FF;border-color:rgba(255,255,255,0.12);}
+body.ot-dark .btn{background:#1C2540;border-color:rgba(255,255,255,0.1);color:#EEF2FF;}
+body.ot-dark .btn:hover{background:#243055;}
+body.ot-dark .panel{background:#111827;border-color:rgba(255,255,255,0.07);}
+body.ot-dark .project-card{background:#111827;border-color:rgba(255,255,255,0.07);}
+body.ot-dark .life-grid{background:#111827;}
+body.ot-dark .life-cell{background:#1C2540;border-color:rgba(255,255,255,0.08);}
+body.ot-dark .mind-grid td{border-color:rgba(255,255,255,0.06);}
+body.ot-dark .fin-entry{border-color:rgba(255,255,255,0.06);}
+body.ot-dark .fin-summary-card{background:#111827;}
+body.ot-dark .train-session{background:#111827;border-color:rgba(255,255,255,0.07);}
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#242422;--bg3:#2e2e2c;
   --text:#e8e8e4;--text2:#a0a09a;--text3:#6b6b67;
@@ -26,6 +61,105 @@
 }}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);font-size:13px;line-height:1.4;}
 #app{max-width:1140px;margin:0 auto;padding:10px 8px 60px;}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media(max-width:640px){
+  #app{padding:6px 4px 80px;}
+
+  /* Tab bar — scrollable on mobile */
+  .tab-bar{padding:3px;gap:1px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;scrollbar-width:none;}
+  .tab-bar::-webkit-scrollbar{display:none;}
+  .tab-btn{flex-shrink:0;min-width:60px;padding:7px 8px;font-size:10px;}
+  .sync-bar{font-size:10px;flex-wrap:nowrap;overflow-x:auto;}
+  .sync-actions{flex-shrink:0;}
+
+  /* Week grid — show fewer columns on mobile, horizontal scroll */
+  .grid-wrap-inner{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .grid-outer{border-radius:var(--radius);}
+
+  /* Mobile: tighten column width */
+  :root{--col-w:80px!important;--label-w:32px!important;--slot-h:18px!important;}
+
+  /* Mobile day header compacted */
+  .ghead-date{font-size:10px;}
+  .ghead-name{font-size:8px;}
+
+  /* Blocks on mobile */
+  .blk-title{font-size:7px!important;}
+  .blk-sub,.blk-actual{font-size:6px!important;}
+  .blk{padding:2px 3px!important;}
+
+  /* Stats row stack on mobile */
+  .stats-row{flex-wrap:wrap;}
+
+  /* Modals — full width on mobile */
+  .modal-inner,.modal-inner2{width:calc(100vw - 16px)!important;max-width:100%!important;margin:8px;}
+  .mbg,.mbg2{align-items:flex-end!important;padding:0!important;}
+  .modal-inner,.modal-inner2{border-radius:16px 16px 0 0!important;max-height:90vh;overflow-y:auto;}
+
+  /* Life tracker — horizontal scroll */
+  .life-grid{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table.life-table{min-width:500px;}
+
+  /* Dashboard — single column */
+  .dash-grid{grid-template-columns:1fr!important;}
+
+  /* Focus timer */
+  .ft-wrap{min-height:auto;}
+
+  /* FABs — reposition for mobile */
+  .fab-group{bottom:72px!important;right:12px!important;}
+
+  /* Hide less important columns on mobile — show Mon-Fri, hide Sat-Sun by default */
+  .mobile-hide{display:none!important;}
+
+  /* Project cards */
+  .project-card{margin-bottom:8px;}
+
+  /* Training sessions */
+  .train-session{margin-bottom:8px;}
+
+  /* Panels */
+  .panel{margin-bottom:8px;}
+
+  /* Quote bar */
+  .quote-bar{font-size:11px;padding:6px 10px;}
+
+  /* Deadline chips */
+  .dl-chip{max-width:90px!important;}
+
+  /* Load row compact */
+  .load-cell{font-size:8px!important;padding:2px!important;}
+}
+
+/* Mobile-first bottom nav for very small screens */
+@media(max-width:480px){
+  .tab-bar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    z-index:100;
+    border-radius:0;
+    border-top:.5px solid var(--border2);
+    border-bottom:none;
+    margin-bottom:0;
+    background:var(--bg);
+    justify-content:space-around;
+    padding:6px 0 env(safe-area-inset-bottom,0);
+  }
+  .tab-btn{
+    flex-direction:column;
+    gap:2px;
+    font-size:9px;
+    min-width:0;
+    padding:4px 6px;
+  }
+  /* Hide text on very small, show icon approximations */
+  #app{padding-bottom:70px;}
+  .sync-bar{font-size:9px;}
+  .sync-actions .btn{font-size:10px;padding:2px 6px;}
+  /* Larger tap targets */
+  .blk{min-height:20px;}
+}
 
 /* Tab bar */
 .tab-bar{display:flex;align-items:center;gap:2px;margin-bottom:10px;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:4px;position:relative;}
@@ -296,6 +430,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fin-savings-bar{height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;margin-top:6px;}
 .fin-savings-fill{height:100%;border-radius:5px;background:var(--success);transition:width .4s;}
 
+/* ── Pomodoro Focus Timer ── */
+.ft-wrap{position:relative;display:flex;flex-direction:column;min-height:520px;background:var(--bg);border-radius:var(--radius-lg);overflow:hidden;}
+.ft-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;flex-shrink:0;}
+.ft-style-tabs{display:flex;gap:1px;padding:0 16px 8px;}
+.ft-style-btn{flex:1;border:none;cursor:pointer;font-size:11px;font-weight:600;border-radius:7px;padding:5px 0;background:var(--bg3);color:var(--text2);transition:all .12s;}
+.ft-style-btn.active{background:var(--info);color:#fff;}
+.ft-dur-picker{padding:8px 16px 10px;background:var(--bg2);border-bottom:.5px solid var(--border);flex-shrink:0;}
+.ft-dur-presets{display:flex;gap:6px;margin-bottom:8px;}
+.ft-dur-btn{flex:1;background:var(--bg3);border:.5px solid var(--border);border-radius:7px;padding:7px 0;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);}
+.ft-dur-btn.active{background:var(--info);color:#fff;border-color:var(--info);}
+.ft-face{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.ft-controls{padding:10px 20px 20px;flex-shrink:0;}
+.ft-ctrl-row{display:flex;gap:10px;align-items:center;}
+.ft-reset-btn{width:50px;height:50px;border-radius:50%;border:.5px solid var(--border);background:var(--bg3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+.ft-play-btn{flex:1;height:50px;border-radius:25px;background:var(--info);color:#fff;border:none;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(91,141,239,0.35);}
+.ft-preset-row{display:flex;gap:6px;margin-bottom:10px;}
+.ft-preset-btn{flex:1;border:.5px solid var(--border);background:var(--bg3);border-radius:10px;padding:7px 0;font-size:10px;font-weight:700;cursor:pointer;text-align:center;color:var(--text2);transition:all .12s;}
+.ft-preset-btn.active{background:var(--bg2);color:var(--text);border-color:var(--info);}
+.ft-session-list{background:var(--bg2);border-radius:var(--radius-lg);border:.5px solid var(--border);overflow:hidden;margin-top:10px;}
+.ft-session-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;font-size:11px;border-bottom:.5px solid var(--border);}
+.ft-session-row:last-child{border-bottom:none;}
+.ft-task-picker{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+
+/* ── Dashboard ── */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.dash-module{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden;}
+.dash-module-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--border);font-size:12px;font-weight:700;color:var(--text);}
+.dash-module-body{padding:10px 12px;}
+.dash-settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:center;justify-content:center;}
+.dash-settings-modal{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:340px;max-height:80vh;overflow-y:auto;}
+.dash-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);}
+.dash-toggle-row:last-child{border-bottom:none;}
+
 /* Training plan */
 .train-session{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:8px;overflow:hidden;}
 .train-session-head{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;user-select:none;}
@@ -557,6 +724,8 @@ svg.sparkline{overflow:visible;}
     <button class="tab-btn" id="tab-life" onclick="switchTab('life')">🌱 Life<span class="tab-notif" id="life-notif" style="display:none"></span></button>
     <button class="tab-btn" id="tab-fitness" onclick="switchTab('fitness')">🚴 Training</button>
     <button class="tab-btn" id="tab-finance" onclick="switchTab('finance')">💰 Finance</button>
+    <button class="tab-btn" id="tab-dashboard" onclick="switchTab('dashboard')">⊞ Dashboard</button>
+    <button class="tab-btn" id="tab-focus" onclick="switchTab('focus')">◉ Focus</button>
     <div class="sync-mini">
       <div class="sync-dot loading" id="sync-dot"></div>
       <span class="sync-txt" id="sync-txt">...</span>
@@ -567,6 +736,7 @@ svg.sparkline{overflow:visible;}
   <div class="sync-bar">
     <span class="sync-time" id="sync-time"></span>
     <div class="sync-actions">
+      <button class="btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark theme" style="font-size:13px;padding:3px 7px">🌙</button>
       <button class="btn" onclick="document.getElementById('json-imp').click()">📂 Import JSON</button>
       <input type="file" id="json-imp" accept=".json" style="display:none" onchange="importJSON(event)">
       <button class="btn" onclick="manageCategories()">🎨 Categories</button>
@@ -608,6 +778,16 @@ svg.sparkline{overflow:visible;}
   <div class="legend" id="legend"></div>
   <div class="print-head" id="print-head"></div>
 
+  <!-- Mobile day navigator -->
+  <div id="mobile-day-nav" style="display:none;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border:.5px solid var(--border2);border-radius:var(--radius);margin-bottom:6px">
+    <button class="btn" onclick="mobilePrevDay()" style="padding:4px 10px">‹</button>
+    <div style="flex:1;text-align:center">
+      <div id="mobile-day-label" style="font-size:14px;font-weight:700;color:var(--text)"></div>
+      <div id="mobile-date-label" style="font-size:11px;color:var(--text3)"></div>
+    </div>
+    <button class="btn" onclick="mobileNextDay()" style="padding:4px 10px">›</button>
+    <button class="btn" onclick="toggleMobileView()" id="mobile-view-toggle" style="font-size:10px;padding:4px 8px">Week</button>
+  </div>
   <div class="grid-outer">
     <div class="grid-wrap">
       <div class="dl-row" id="dl-row"></div>
@@ -782,6 +962,24 @@ svg.sparkline{overflow:visible;}
   </div>
 </div>
 
+<!-- Dashboard tab -->
+<div class="tab-content" id="content-dashboard">
+  <div style="padding:10px 4px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);flex:1">⊞ Dashboard</div>
+      <button class="btn" onclick="openDashboardSettings()" style="font-size:11px">⚙ Customise</button>
+    </div>
+    <div id="dashboard-grid"></div>
+  </div>
+</div>
+
+<!-- Focus / Pomodoro tab -->
+<div class="tab-content" id="content-focus">
+  <div style="padding:10px 4px">
+    <div id="focus-container"></div>
+  </div>
+</div>
+
 <!-- Finance tab -->
 <div class="tab-content" id="content-finance">
   <div style="padding:10px 4px">
@@ -948,7 +1146,7 @@ async function loadSB(){
         customQuotes:d.customQuotes||[],lifeLog:d.lifeLog||[],awayDays:d.awayDays||[],
       };
     }
-    cleanRecurringMasterStatus();setSS('ok','Synced');setST();applyColMode();render();renderQuote();
+    cleanRecurringMasterStatus();setSS('ok','Synced');setST();applyColMode();render();renderQuote();initMobileNav();
   }catch(e){setSS('error','Connection error');render();}
 }
 async function saveSB(){
@@ -3067,7 +3265,6 @@ const LIFE_ROWS=[
   {id:'exercise',label:'Exercise',      type:'check',   icon:'🏃'},
   {id:'prayed',  label:'Prayed',        type:'check',   icon:'🙏'},
   {id:'bible',   label:'Bible',         type:'check',   icon:'📖'},
-  {id:'anki',    label:'Anki',          type:'check',   icon:'📚'},
   {id:'screen',  label:'Screen time',   type:'number',  icon:'📱', unit:'h', sparkline2:true},
   {id:'work',    label:'Work hrs',      type:'workhrs', icon:'💼', unit:'h', sparkline2:true},
 ];
@@ -3987,9 +4184,6 @@ function exportTrainReport(){
         if(log.dur)report+=`    Actual duration: ${log.dur}\n`;
         if(log.feeling)report+=`    Feeling: ${log.feeling}/10\n`;
         if(log.notes)report+=`    Notes: ${log.notes}\n`;
-        if(log.vol)report+=`    Volume: ${log.vol}kg\n`;
-        if(log.dist)report+=`    Distance: ${log.dist}km\n`;
-        if(log.elev)report+=`    Elevation: ${log.elev}m\n`;
         weekLogs.push(log);
       } else {
         report += `  — Not logged\n`;
@@ -4679,7 +4873,6 @@ function openWeeklyReview(){
   const prayedDays=lifeEntries.filter(e=>e.prayed).length;
   const bibleDays=lifeEntries.filter(e=>e.bible).length;
   const exerciseDays=lifeEntries.filter(e=>e.exercise).length;
-  const ankiDays=lifeEntries.filter(e=>e.anki).length;
 
   // ── Mind ──
   const mindLogs=state.mindLogs||[];
@@ -4742,7 +4935,6 @@ function openWeeklyReview(){
         <div>Exercise: ${exerciseDays}/7 days</div>
         <div>Prayed: ${prayedDays}/7</div>
         <div>Bible: ${bibleDays}/7</div>
-        <div>Anki: ${ankiDays}/7</div>
       </div>
 
       <div style="font-weight:700;color:var(--text);margin-bottom:4px;border-bottom:.5px solid var(--border2);padding-bottom:4px">🧠 Mind</div>
@@ -4799,6 +4991,604 @@ function exportWeeklyReview(wkLabel){
   a.click();URL.revokeObjectURL(a.href);
   showToast('Review exported');
 }
+
+
+// ── Theme toggle ──────────────────────────────────────────────
+function toggleTheme(){
+  const dark = document.body.classList.toggle('ot-dark');
+  localStorage.setItem('ot_theme', dark ? 'dark' : 'light');
+  document.getElementById('theme-toggle-btn').textContent = dark ? '☀️' : '🌙';
+}
+(function initTheme(){
+  const saved = localStorage.getItem('ot_theme');
+  if(saved === 'dark'){
+    document.body.classList.add('ot-dark');
+    const btn = document.getElementById('theme-toggle-btn');
+    if(btn) btn.textContent = '☀️';
+  }
+})();
+
+// ── Tab switch extension (add dashboard + focus) ──────────────
+const _origSwitchTab = switchTab;
+function switchTab(tab){
+  // Handle new tabs
+  ['planner','mind','life','fitness','finance','dashboard','focus'].forEach(t=>{
+    const btn=document.getElementById('tab-'+t);
+    const cnt=document.getElementById('content-'+t);
+    if(btn)btn.classList.toggle('active',t===tab);
+    if(cnt)cnt.classList.toggle('active',t===tab);
+  });
+  currentTab=tab;
+  if(tab==='mind')renderMind(weekDates(weekOffset));
+  if(tab==='life')renderLifeTracker();
+  if(tab==='fitness')renderTraining();
+  if(tab==='finance')renderFinance();
+  if(tab==='dashboard')renderDashboard();
+  if(tab==='focus')renderFocusTab();
+  renderGoals();renderCRM();
+}
+
+// ── Pomodoro / Focus Timer ────────────────────────────────────
+const POMO_PRESETS = [
+  {label:'Classic', work:25, short:5,  long:15, rounds:4},
+  {label:'Deep',    work:50, short:10, long:20, rounds:3},
+  {label:'Sprint',  work:15, short:3,  long:10, rounds:6},
+];
+const FT_STYLES_LIST = ['arc','bloom','retro'];
+const FT_STYLE_LABELS = ['Arc','Bloom','Retro'];
+const FT_DURATION_PRESETS = [5,15,25,45,60];
+
+let ftState = {
+  preset: 0,
+  style: 'arc',
+  phase: 'idle', // idle|work|short|long
+  seconds: POMO_PRESETS[0].work * 60,
+  round: 1,
+  sessions: [],
+  taskActId: null,
+  customMins: null,
+  intervalId: null,
+  totalSecs: POMO_PRESETS[0].work * 60,
+};
+
+function renderFocusTab(){
+  const el = document.getElementById('focus-container');
+  if(!el) return;
+  const cfg = POMO_PRESETS[ftState.preset];
+  const pct = ftState.phase==='idle' ? 0 : Math.max(0, 1 - ftState.seconds / ftState.totalSecs);
+  const mins = Math.floor(ftState.seconds/60);
+  const secs = ftState.seconds % 60;
+  const timeStr = String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+  const phaseCol = ftState.phase==='work'?'var(--info)':ftState.phase==='short'?'var(--success)':ftState.phase==='long'?'var(--warn)':'var(--bg3)';
+  const phaseLabel = ftState.phase==='work'?'Focus':ftState.phase==='short'?'Short break':ftState.phase==='long'?'Long break':'Ready';
+  const acts = DEFAULT_ACTS ? DEFAULT_ACTS : [];
+  const actLabel = ftState.taskActId ? (getAct(ftState.taskActId).label||ftState.taskActId) : 'No category selected';
+
+  // SVG ring
+  const R=88,CX=110,CY=110,STROKE=10;
+  const circ = 2*Math.PI*R;
+  const dash = pct*circ;
+  const totalSessionMins = ftState.sessions.reduce((a,s)=>a+s.mins,0);
+
+  el.innerHTML = `
+  <div class="ft-wrap">
+    <!-- Header -->
+    <div class="ft-header">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase">Focus Timer</div>
+      <button class="btn" onclick="ftToggleDurPicker()" style="font-size:11px">${Math.round(ftState.totalSecs/60)}m ▾</button>
+    </div>
+
+    <!-- Style tabs -->
+    <div class="ft-style-tabs">
+      ${FT_STYLES_LIST.map((s,i)=>`<button class="ft-style-btn${ftState.style===s?' active':''}" onclick="ftSetStyle('${s}')">${FT_STYLE_LABELS[i]}</button>`).join('')}
+    </div>
+
+    <!-- Duration picker -->
+    <div class="ft-dur-picker" id="ft-dur-picker" style="display:none">
+      <div class="ft-dur-presets">
+        ${FT_DURATION_PRESETS.map(m=>`<button class="ft-dur-btn${Math.round(ftState.totalSecs/60)===m?' active':''}" onclick="ftSetDur(${m})">${m}m</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="ft-custom-dur" placeholder="Custom min…" style="flex:1;font-size:14px;padding:8px 10px"
+          value="${ftState.customMins||''}" oninput="document.getElementById('ft-apply-dur').style.opacity=1">
+        <button class="btn btn-p" id="ft-apply-dur" onclick="ftApplyCustomDur()">Set</button>
+      </div>
+    </div>
+
+    <!-- Preset selector -->
+    <div style="padding:0 16px 4px">
+      <div class="ft-preset-row">
+        ${POMO_PRESETS.map((p,i)=>`<button class="ft-preset-btn${ftState.preset===i?' active':''}" onclick="ftSetPreset(${i})">
+          <div>${p.label}</div><div style="font-size:8.5px;color:var(--text3);margin-top:1px">${p.work}m · ${p.short}m</div>
+        </button>`).join('')}
+      </div>
+    </div>
+
+    <!-- Timer face -->
+    <div class="ft-face" id="ft-face">
+      ${ftRenderFace(ftState.style, timeStr, pct, phaseLabel, phaseCol, actLabel)}
+    </div>
+
+    <!-- Task / category picker -->
+    <div style="padding:0 16px 8px">
+      <div class="ft-task-picker" onclick="ftOpenActPicker()">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(actLabel)}</div>
+          <div style="font-size:9.5px;color:var(--text3);margin-top:1px">Category to log time to</div>
+        </div>
+        <span style="color:var(--text3)">›</span>
+      </div>
+    </div>
+
+    <!-- Round indicator -->
+    <div style="text-align:center;font-size:10px;color:var(--text3);padding-bottom:6px">
+      Round ${ftState.round} / ${cfg.rounds} · ${phaseLabel}
+    </div>
+
+    <!-- Controls -->
+    <div class="ft-controls">
+      <div class="ft-ctrl-row">
+        <button class="ft-reset-btn" onclick="ftReset()">↺</button>
+        ${ftState.phase==='idle'
+          ? `<button class="ft-play-btn" onclick="ftStart()">▶ Start</button>`
+          : `<button class="ft-play-btn" onclick="ftPause()" style="${ftState.phase!=='idle'?'':'opacity:.5'}">⏸ Pause</button>`}
+        <button class="ft-reset-btn" onclick="ftSkip()" title="Skip to next phase" style="font-size:13px">⏭</button>
+      </div>
+      <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:8px">
+        ${totalSessionMins>0?`${ftState.sessions.length} session${ftState.sessions.length>1?'s':''} today · ${totalSessionMins}m logged`:'Sessions save to work hours on completion'}
+      </div>
+    </div>
+
+    <!-- Session log -->
+    ${ftState.sessions.length>0?`
+    <div style="padding:0 16px 16px">
+      <div style="font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Today</div>
+      <div class="ft-session-list">
+        ${ftState.sessions.map((s,i)=>`<div class="ft-session-row">
+          <div>
+            <div style="font-weight:500;color:var(--text)">${esc(s.label)}</div>
+            <div style="font-size:9px;color:var(--text3)">Round ${s.round}</div>
+          </div>
+          <span style="font-weight:700;color:var(--info)">${s.mins}m</span>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
+  </div>`;
+}
+
+function ftRenderFace(style, timeStr, pct, phaseLabel, phaseCol, actLabel){
+  const R=88,CX=105,CY=105,STROKE=10;
+  const circ = 2*Math.PI*R;
+  const dash = pct*circ;
+  if(style==='arc'){
+    return `<div style="position:relative;margin-bottom:16px">
+      <svg width="210" height="210" viewBox="0 0 210 210">
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="var(--bg3)" stroke-width="${STROKE}"/>
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${phaseCol}" stroke-width="${STROKE}"
+          stroke-linecap="round" stroke-dasharray="${dash} ${circ-dash}" transform="rotate(-90 ${CX} ${CY})"
+          style="transition:stroke-dasharray .6s linear"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="font-size:38px;font-weight:800;color:var(--text);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums">${timeStr}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);margin-top:5px;text-transform:uppercase;letter-spacing:.07em">${phaseLabel}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+      <div style="width:8px;height:8px;border-radius:2px;background:${phaseCol}"></div>${esc(actLabel)}
+    </div>`;
+  } else if(style==='bloom'){
+    return `<div style="font-size:72px;font-weight:900;color:var(--text);letter-spacing:-.06em;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums;text-shadow:0 0 60px ${phaseCol}55">${timeStr}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:16px">${phaseLabel}</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${phaseCol}"></div>${esc(actLabel)}
+    </div>`;
+  } else {
+    // Retro
+    const sweepDeg = (1-pct)*360;
+    return `<div style="width:190px;height:190px;border-radius:50%;margin-bottom:16px;
+      background:conic-gradient(${phaseCol} 0deg ${sweepDeg}deg,var(--bg3) ${sweepDeg}deg 360deg);
+      display:flex;align-items:center;justify-content:center;position:relative;
+      box-shadow:0 0 0 8px var(--bg2),0 0 0 10px var(--border2)">
+      <div style="width:150px;height:150px;border-radius:50%;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2">
+        <div style="font-size:30px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1">${timeStr}</div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:4px">${phaseLabel}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+      <div style="width:8px;height:8px;border-radius:2px;background:${phaseCol}"></div>${esc(actLabel)}
+    </div>`;
+  }
+}
+
+function ftSetStyle(s){ ftState.style=s; renderFocusTab(); }
+function ftSetPreset(i){ 
+  clearInterval(ftState.intervalId);
+  ftState.preset=i;
+  ftState.phase='idle';
+  ftState.round=1;
+  ftState.totalSecs=POMO_PRESETS[i].work*60;
+  ftState.seconds=ftState.totalSecs;
+  renderFocusTab();
+}
+function ftToggleDurPicker(){
+  const el=document.getElementById('ft-dur-picker');
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+function ftSetDur(m){
+  clearInterval(ftState.intervalId);
+  ftState.totalSecs=m*60;ftState.seconds=m*60;ftState.phase='idle';
+  const el=document.getElementById('ft-dur-picker');if(el)el.style.display='none';
+  renderFocusTab();
+}
+function ftApplyCustomDur(){
+  const v=parseInt(document.getElementById('ft-custom-dur')?.value)||25;
+  ftSetDur(Math.max(1,Math.min(180,v)));
+}
+function ftStart(){
+  const cfg=POMO_PRESETS[ftState.preset];
+  ftState.phase='work';
+  ftState.seconds=cfg.work*60;
+  ftState.totalSecs=cfg.work*60;
+  clearInterval(ftState.intervalId);
+  ftState.intervalId=setInterval(()=>{
+    ftState.seconds--;
+    if(ftState.seconds<=0){
+      ftSkip();
+    } else {
+      const face=document.getElementById('ft-face');
+      if(face){
+        const cfg2=POMO_PRESETS[ftState.preset];
+        const pct=Math.max(0,1-ftState.seconds/ftState.totalSecs);
+        const mins=Math.floor(ftState.seconds/60),secs=ftState.seconds%60;
+        const ts=String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0');
+        const phaseCol=ftState.phase==='work'?'var(--info)':ftState.phase==='short'?'var(--success)':'var(--warn)';
+        const phaseLabel=ftState.phase==='work'?'Focus':ftState.phase==='short'?'Short break':'Long break';
+        const actLabel=ftState.taskActId?getAct(ftState.taskActId).label:'No category';
+        face.innerHTML=ftRenderFace(ftState.style,ts,pct,phaseLabel,phaseCol,actLabel);
+      }
+    }
+  },1000);
+  renderFocusTab();
+}
+function ftPause(){
+  clearInterval(ftState.intervalId);
+  ftState.phase='idle';
+  renderFocusTab();
+}
+function ftReset(){
+  clearInterval(ftState.intervalId);
+  ftState.phase='idle';
+  ftState.round=1;
+  ftState.seconds=ftState.totalSecs;
+  renderFocusTab();
+}
+function ftSkip(){
+  clearInterval(ftState.intervalId);
+  const cfg=POMO_PRESETS[ftState.preset];
+  if(ftState.phase==='work'){
+    // Log the session
+    const elapsedMins=Math.max(1,Math.round((ftState.totalSecs-ftState.seconds)/60));
+    const actLabel=ftState.taskActId?getAct(ftState.taskActId).label:'Deep work';
+    ftState.sessions.push({label:actLabel,mins:elapsedMins,round:ftState.round,actId:ftState.taskActId});
+    // Add to life log work hours
+    if(ftState.taskActId){
+      const today=localDateStr(new Date());
+      if(!state.lifeLog)state.lifeLog=[];
+      let entry=state.lifeLog.find(l=>l.date===today);
+      if(!entry){entry={date:today};state.lifeLog.push(entry);}
+      entry.workManual=(entry.workManual||0)+Math.round(elapsedMins/60*10)/10;
+      sched();
+    }
+    const nextPhase=ftState.round%cfg.rounds===0?'long':'short';
+    const nextSecs=(nextPhase==='long'?cfg.long:cfg.short)*60;
+    ftState.phase=nextPhase;
+    ftState.totalSecs=nextSecs;
+    ftState.seconds=nextSecs;
+    ftState.round=nextPhase==='long'?1:ftState.round+1;
+    ftState.intervalId=setInterval(()=>{
+      ftState.seconds--;
+      if(ftState.seconds<=0)ftSkip();
+    },1000);
+  } else {
+    ftState.phase='idle';
+    ftState.seconds=cfg.work*60;
+    ftState.totalSecs=cfg.work*60;
+  }
+  renderFocusTab();
+}
+function ftOpenActPicker(){
+  const acts=DEFAULT_ACTS||[];
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;display:flex;align-items:flex-end';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML=`<div style="background:var(--bg);border:.5px solid var(--border2);border-radius:18px 18px 0 0;padding:18px 18px 36px;width:100%;max-height:60vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Focus category</div>
+    <div onclick="ftState.taskActId=null;document.querySelector('.ft-task-picker div div:first-child').textContent='No category selected';overlay.remove();renderFocusTab();"
+      style="padding:11px 0;border-bottom:.5px solid var(--border);cursor:pointer;font-size:12px;color:var(--text3)">No specific category</div>
+    ${acts.map(a=>`<div onclick="ftState.taskActId='${a.id}';overlay.remove();renderFocusTab();"
+      style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:.5px solid var(--border);cursor:pointer;background:${ftState.taskActId===a.id?'var(--info-bg)':'transparent'}">
+      <div style="width:12px;height:12px;border-radius:3px;background:${a.color||'var(--text3)'};flex-shrink:0"></div>
+      <span style="font-size:12px;font-weight:500;color:var(--text)">${esc(a.label)}</span>
+      ${ftState.taskActId===a.id?'<span style="color:var(--info);font-weight:700;margin-left:auto">✓</span>':''}
+    </div>`).join('')}
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ── Dashboard ──────────────────────────────────────────────────
+const DASHBOARD_MODULES = [
+  {id:'planner_week',   label:'📅 This week',      defaultOn:true},
+  {id:'deadlines',      label:'⚑ Deadlines',        defaultOn:true},
+  {id:'todos',          label:'✓ Reminders',         defaultOn:true},
+  {id:'projects',       label:'◈ Projects',          defaultOn:true},
+  {id:'life_today',     label:'🌱 Life today',       defaultOn:true},
+  {id:'mind_today',     label:'🧠 Mind today',       defaultOn:true},
+  {id:'training_today', label:'🚴 Training today',   defaultOn:true},
+  {id:'finance_month',  label:'💰 Finance snapshot', defaultOn:false},
+  {id:'goals_active',   label:'🎯 Active goals',     defaultOn:true},
+  {id:'crm_overdue',    label:'👥 Overdue contacts', defaultOn:false},
+  {id:'focus_timer',    label:'◉ Focus timer',       defaultOn:false},
+];
+
+function getDashboardConfig(){
+  const saved=JSON.parse(localStorage.getItem('dash_config')||'{}');
+  return DASHBOARD_MODULES.map(m=>({...m,on:saved[m.id]!==undefined?saved[m.id]:m.defaultOn}));
+}
+
+function saveDashboardConfig(config){
+  const obj={};config.forEach(m=>{obj[m.id]=m.on;});
+  localStorage.setItem('dash_config',JSON.stringify(obj));
+}
+
+function renderDashboard(){
+  const el=document.getElementById('dashboard-grid');
+  if(!el)return;
+  const cfg=getDashboardConfig().filter(m=>m.on);
+  const today=localDateStr(new Date());
+  let html='<div class="dash-grid">';
+  cfg.forEach(m=>{
+    html+=`<div class="dash-module">`;
+    html+=`<div class="dash-module-head">${m.label}</div>`;
+    html+=`<div class="dash-module-body">`;
+    switch(m.id){
+      case 'planner_week':{
+        const blocks=getWeekBlocks();
+        const done=blocks.filter(b=>b.status==='done').length;
+        const total=blocks.length;
+        html+=`<div style="font-size:22px;font-weight:700;color:var(--text)">${done}/${total}</div>`;
+        html+=`<div style="font-size:11px;color:var(--text3)">blocks done this week</div>`;
+        const pct=total?Math.round(done/total*100):0;
+        html+=`<div style="height:6px;background:var(--bg3);border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:6px;background:var(--success);border-radius:3px;width:${pct}%"></div></div>`;
+        break;}
+      case 'deadlines':{
+        const dates=weekDates(weekOffset);
+        const dls=(state.deadlines||[]).filter(d=>{
+          const dt=new Date(today);const end=new Date(dt);end.setDate(dt.getDate()+7);
+          return new Date(d.date)>=dt&&new Date(d.date)<=end&&!d.done;
+        }).slice(0,5);
+        if(!dls.length)html+=`<div style="font-size:11px;color:var(--text3)">No upcoming deadlines</div>`;
+        else dls.forEach(d=>{
+          html+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:.5px solid var(--border)">
+            <div style="width:8px;height:8px;border-radius:2px;background:${getActColor(d.activity)};flex-shrink:0"></div>
+            <div style="flex:1;font-size:11px;color:var(--text)">${esc(d.title)}</div>
+            <div style="font-size:10px;color:var(--text3)">${d.date}</div>
+          </div>`;
+        });
+        break;}
+      case 'todos':{
+        const todayTodos=(state.todos||[]).filter(t=>t.date===today&&!t.done).slice(0,5);
+        if(!todayTodos.length)html+=`<div style="font-size:11px;color:var(--success)">All clear ✓</div>`;
+        else todayTodos.forEach(t=>{
+          html+=`<div style="font-size:11px;color:var(--text);padding:3px 0;border-bottom:.5px solid var(--border)">${esc(t.text)}</div>`;
+        });
+        break;}
+      case 'projects':{
+        const projs=(state.projects||[]).filter(p=>!p.archived).slice(0,4);
+        projs.forEach(p=>{
+          const prog=getProgress(p);
+          html+=`<div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text);margin-bottom:3px"><span>${esc(p.name)}</span><span style="color:var(--text3)">${prog}%</span></div>
+            <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:4px;background:${getActColor(p.activityId)};border-radius:2px;width:${prog}%"></div></div>
+          </div>`;
+        });
+        if(!projs.length)html+=`<div style="font-size:11px;color:var(--text3)">No active projects</div>`;
+        break;}
+      case 'life_today':{
+        const entry=(state.lifeLog||[]).find(l=>l.date===today)||{};
+        const moodEmoji={1:'😞',2:'😕',3:'😐',4:'🙂',5:'😄'};
+        html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="text-align:center"><div style="font-size:22px">${moodEmoji[entry.mood]||'—'}</div><div style="font-size:9px;color:var(--text3)">Mood</div></div>
+          <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text)">${entry.sleep||'—'}</div><div style="font-size:9px;color:var(--text3)">Sleep hrs</div></div>
+          <div style="text-align:center"><div style="font-size:18px">${entry.prayed?'✓':'—'}</div><div style="font-size:9px;color:var(--text3)">Prayed</div></div>
+          <div style="text-align:center"><div style="font-size:18px">${entry.bible?'✓':'—'}</div><div style="font-size:9px;color:var(--text3)">Bible</div></div>
+        </div>`;
+        break;}
+      case 'mind_today':{
+        const mindToday=(state.mindLogs||[]).filter(l=>l.date===today);
+        const totalMins=mindToday.reduce((s,l)=>s+(l.mins||0),0);
+        html+=`<div style="font-size:22px;font-weight:700;color:var(--text)">${totalMins}m</div>`;
+        html+=`<div style="font-size:11px;color:var(--text3);margin-bottom:6px">mind reclaim today</div>`;
+        const MIND_ICONS={silent:'🪨',think:'▲',read:'📖',write:'✍️',recall:'🎯',bore:'🧍'};
+        mindToday.forEach(l=>{html+=`<span style="font-size:10px;background:var(--bg3);border-radius:4px;padding:2px 6px;margin:2px;display:inline-block">${MIND_ICONS[l.actId]||l.actId} ${l.mins}m</span>`;});
+        break;}
+      case 'training_today':{
+        const plan=getActivePlan?getActivePlan():null;
+        if(plan){
+          const weeks=plan.weeks||[];
+          const dayOfWeek=new Date().getDay();
+          const dayIdx=dayOfWeek===0?6:dayOfWeek-1;
+          const sess=weeks[trainWeek-1]?.sessions?.filter((_,i)=>{
+            const s=weeks[trainWeek-1].sessions[i];
+            return ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].indexOf(s.day)===dayIdx;
+          })||[];
+          if(sess.length){
+            html+=`<div style="font-size:12px;font-weight:600;color:var(--text)">${esc(sess[0].name)}</div>`;
+            html+=`<div style="font-size:10px;color:var(--text3)">${esc(sess[0].duration)}</div>`;
+          } else {
+            html+=`<div style="font-size:11px;color:var(--text3)">Rest day 🛌</div>`;
+          }
+        } else {
+          html+=`<div style="font-size:11px;color:var(--text3)">No training plan loaded</div>`;
+        }
+        break;}
+      case 'finance_month':{
+        const finMk=getFinMonth?getFinMonth():null;
+        const finData=finMk&&state.finData?state.finData[finMk]:null;
+        if(finData){
+          const inc=(finData.income||[]).reduce((s,e)=>s+e.amount,0);
+          const exp=(finData.expenses||[]).reduce((s,e)=>s+e.amount,0);
+          html+=`<div style="display:flex;gap:10px">
+            <div><div style="font-size:14px;font-weight:700;color:var(--success)">R${inc.toLocaleString('en-ZA')}</div><div style="font-size:9px;color:var(--text3)">Income</div></div>
+            <div><div style="font-size:14px;font-weight:700;color:var(--danger)">R${exp.toLocaleString('en-ZA')}</div><div style="font-size:9px;color:var(--text3)">Expenses</div></div>
+            <div><div style="font-size:14px;font-weight:700;color:${inc-exp>=0?'var(--success)':'var(--danger)'}">R${Math.abs(inc-exp).toLocaleString('en-ZA')}</div><div style="font-size:9px;color:var(--text3)">Net</div></div>
+          </div>`;
+        } else {
+          html+=`<div style="font-size:11px;color:var(--text3)">No finance data for this month</div>`;
+        }
+        break;}
+      case 'goals_active':{
+        const goals=(state.goals||[]).filter(g=>g.status==='active').slice(0,4);
+        goals.forEach(g=>{
+          const done=(g.milestones||[]).filter(m=>m.done).length;
+          const total=(g.milestones||[]).length;
+          const pct=total?Math.round(done/total*100):0;
+          html+=`<div style="margin-bottom:8px">
+            <div style="font-size:11px;color:var(--text);margin-bottom:2px">${esc(g.title)}</div>
+            <div style="font-size:9px;color:var(--text3);margin-bottom:3px">${g.pillar||''} · ${done}/${total} milestones</div>
+            <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden"><div style="height:4px;background:var(--info);border-radius:2px;width:${pct}%"></div></div>
+          </div>`;
+        });
+        if(!goals.length)html+=`<div style="font-size:11px;color:var(--text3)">No active goals</div>`;
+        break;}
+      case 'crm_overdue':{
+        const overdue=(state.crm||[]).filter(c=>{
+          if(!c.lastContact)return true;
+          const days=Math.floor((new Date()-new Date(c.lastContact+'T12:00:00'))/(86400000));
+          const freq={Daily:1,Weekly:7,Fortnightly:14,Monthly:30,Quarterly:90,Yearly:365};
+          return days>(freq[c.frequency]||30);
+        });
+        if(!overdue.length)html+=`<div style="font-size:11px;color:var(--success)">All relationships on track ✓</div>`;
+        else overdue.slice(0,5).forEach(c=>{
+          html+=`<div style="font-size:11px;color:var(--danger);padding:3px 0;border-bottom:.5px solid var(--border)">${esc(c.name)} — ${c.frequency||'Monthly'}</div>`;
+        });
+        break;}
+      case 'focus_timer':{
+        html+=`<div style="text-align:center">
+          <button class="btn btn-p" onclick="switchTab('focus')" style="margin:8px auto">◉ Open focus timer</button>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">${ftState.sessions.length} sessions today · ${ftState.sessions.reduce((a,s)=>a+s.mins,0)}m</div>
+        </div>`;
+        break;}
+      default: html+=`<div style="font-size:11px;color:var(--text3)">Module</div>`;
+    }
+    html+=`</div></div>`;
+  });
+  html+='</div>';
+  if(!cfg.length) html='<div style="text-align:center;padding:2rem;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">⊞</div>No modules selected. <button class="btn" onclick="openDashboardSettings()" style="margin-top:8px">Customise</button></div>';
+  el.innerHTML=html;
+}
+
+function openDashboardSettings(){
+  const cfg=getDashboardConfig();
+  const overlay=document.createElement('div');
+  overlay.className='dash-settings-overlay';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML=`<div class="dash-settings-modal">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">⚙ Customise dashboard</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px">Choose which modules appear on your dashboard</div>
+    ${cfg.map(m=>`<div class="dash-toggle-row">
+      <span style="font-size:12px;color:var(--text)">${m.label}</span>
+      <label style="position:relative;width:38px;height:22px;cursor:pointer">
+        <input type="checkbox" ${m.on?'checked':''} onchange="ftDashToggle('${m.id}',this.checked)" style="opacity:0;width:0;height:0;position:absolute">
+        <div style="position:absolute;inset:0;border-radius:11px;background:${m.on?'var(--info)':'var(--bg3)'};transition:.2s;border:.5px solid var(--border)"></div>
+        <div style="position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:2px;left:${m.on?'18px':'2px'};transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
+      </label>
+    </div>`).join('')}
+    <button class="btn btn-p" onclick="this.closest('.dash-settings-overlay').remove();renderDashboard()" style="width:100%;margin-top:16px">Done</button>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function ftDashToggle(id, on){
+  const cfg=getDashboardConfig();
+  const m=cfg.find(x=>x.id===id);
+  if(m)m.on=on;
+  saveDashboardConfig(cfg);
+}
+
+
+// ── Mobile responsive helpers ────────────────────────────────
+let mobileDayOffset = 0; // 0=Mon, 1=Tue... 6=Sun
+let mobileViewMode = 'week'; // 'week' | 'day'
+
+function isMobile(){ return window.innerWidth <= 640; }
+
+function initMobileNav(){
+  const nav = document.getElementById('mobile-day-nav');
+  if(!nav) return;
+  // Show on mobile
+  nav.style.display = isMobile() ? 'flex' : 'none';
+  if(isMobile()){
+    // Default to today's day
+    const todayIdx = new Date().getDay();
+    mobileDayOffset = todayIdx === 0 ? 6 : todayIdx - 1;
+    updateMobileDayLabel();
+    if(mobileViewMode === 'day') applyMobileDayFilter();
+  }
+}
+
+function updateMobileDayLabel(){
+  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const dates = weekDates(weekOffset);
+  const d = dates[mobileDayOffset];
+  const lbl = document.getElementById('mobile-day-label');
+  const dlbl = document.getElementById('mobile-date-label');
+  if(lbl) lbl.textContent = DAYS[mobileDayOffset];
+  if(dlbl && d) dlbl.textContent = d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+}
+
+function mobilePrevDay(){
+  if(mobileViewMode !== 'day') return;
+  if(mobileDayOffset > 0){ mobileDayOffset--; }
+  else { mobileDayOffset = 6; weekOffset--; render(); }
+  updateMobileDayLabel();
+  applyMobileDayFilter();
+}
+
+function mobileNextDay(){
+  if(mobileViewMode !== 'day') return;
+  if(mobileDayOffset < 6){ mobileDayOffset++; }
+  else { mobileDayOffset = 0; weekOffset++; render(); }
+  updateMobileDayLabel();
+  applyMobileDayFilter();
+}
+
+function toggleMobileView(){
+  mobileViewMode = mobileViewMode === 'week' ? 'day' : 'week';
+  const btn = document.getElementById('mobile-view-toggle');
+  if(btn) btn.textContent = mobileViewMode === 'week' ? 'Week' : 'Day';
+  if(mobileViewMode === 'day'){
+    applyMobileDayFilter();
+  } else {
+    // Restore all columns
+    document.querySelectorAll('.gcol-day').forEach(el => el.style.display = '');
+    document.querySelectorAll('.ghead').forEach((el,i) => { if(i>0) el.style.display = ''; });
+  }
+}
+
+function applyMobileDayFilter(){
+  if(mobileViewMode !== 'day') return;
+  // Hide all day columns except the selected one
+  document.querySelectorAll('.gcol-day').forEach((el,i) => {
+    el.style.display = i === mobileDayOffset ? '' : 'none';
+  });
+  document.querySelectorAll('.ghead').forEach((el,i) => {
+    if(i === 0) return; // keep label column
+    el.style.display = (i-1) === mobileDayOffset ? '' : 'none';
+  });
+}
+
+// Run on load and resize
+window.addEventListener('resize', initMobileNav);
 
 loadSB();
 // Update time line every minute
